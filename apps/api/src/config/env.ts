@@ -67,6 +67,19 @@ const envSchema = z.object({
 
   // --- Conservation des preuves (RGPD) : 10 ans par défaut pour la valeur probante ---
   PREUVE_RETENTION_YEARS: z.coerce.number().int().positive().default(10),
+
+  // --- Stockage WORM (souveraineté) : object-lock + rétention sur les objets ---
+  S3_OBJECT_LOCK: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  S3_RETENTION_YEARS: z.coerce.number().int().positive().default(10),
+
+  // --- Notifications (opérateurs FR uniquement) ---
+  MAIL_PROVIDER: z.enum(['log', 'brevo']).default('log'),
+  MAIL_FROM: z.string().default('no-reply@humanix.example'),
+  BREVO_API_KEY: z.string().optional(),
+  SMS_PROVIDER: z.enum(['log', 'octopush']).default('log'),
+  SMS_SENDER: z.string().default('Humanix'),
+  OCTOPUSH_API_LOGIN: z.string().optional(),
+  OCTOPUSH_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -43,12 +43,25 @@ export class S3ObjectStorage implements ObjectStorage, OnModuleInit {
   }
 
   async onModuleInit(): Promise<void> {
-    // Crée le bucket s'il n'existe pas (dev/self-host).
+    // Crée le bucket s'il n'existe pas (dev/self-host). object-lock activable seulement
+    // à la création (WORM, souveraineté) — sans effet si le bucket existe déjà.
     try {
       await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
     } catch {
-      await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }));
+      await this.client.send(
+        new CreateBucketCommand({
+          Bucket: this.bucket,
+          ...(this.env.S3_OBJECT_LOCK ? { ObjectLockEnabledForBucket: true } : {}),
+        }),
+      );
     }
+  }
+
+  /** Date de rétention WORM (object-lock) pour les artefacts probants. */
+  private retainUntil(): Date {
+    const d = new Date();
+    d.setUTCFullYear(d.getUTCFullYear() + this.env.S3_RETENTION_YEARS);
+    return d;
   }
 
   async put(key: string, body: Buffer, contentType: string): Promise<void> {
@@ -64,12 +77,17 @@ export class S3ObjectStorage implements ObjectStorage, OnModuleInit {
   }
 
   async copy(fromKey: string, toKey: string): Promise<void> {
+    // La promotion (quarantaine → espace servable) pose la rétention WORM si activée :
+    // l'objet probant devient non supprimable/modifiable jusqu'à expiration (COMPLIANCE).
     await this.client.send(
       new CopyObjectCommand({
         Bucket: this.bucket,
         CopySource: `${this.bucket}/${fromKey}`,
         Key: toKey,
         ServerSideEncryption: this.sse,
+        ...(this.env.S3_OBJECT_LOCK
+          ? { ObjectLockMode: 'COMPLIANCE' as const, ObjectLockRetainUntilDate: this.retainUntil() }
+          : {}),
       }),
     );
   }
