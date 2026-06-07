@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { DocumentsModule } from './documents/documents.module';
 import { EmargementModule } from './emargement/emargement.module';
 import { QuestionnairesModule } from './questionnaires/questionnaires.module';
+import { ExportsModule } from './exports/exports.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -24,6 +25,7 @@ import { HealthController } from './health/health.controller';
     DocumentsModule,
     EmargementModule,
     QuestionnairesModule,
+    ExportsModule,
   ],
   controllers: [HealthController],
 })

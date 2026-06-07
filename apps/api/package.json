@@ -20,6 +20,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.658.0",
     "@humanix/domain": "workspace:*",
+    "@humanix/pdf-templates": "workspace:*",
     "@humanix/signature-engine": "workspace:*",
     "@nestjs/common": "^10.4.0",
     "@nestjs/core": "^10.4.0",
@@ -27,6 +28,7 @@
     "@nestjs/platform-express": "^10.4.0",
     "@prisma/client": "^5.20.0",
     "argon2": "^0.41.1",
+    "exceljs": "^4.4.0",
     "helmet": "^8.0.0",
     "nestjs-pino": "^4.1.0",
     "otplib": "^12.0.1",
