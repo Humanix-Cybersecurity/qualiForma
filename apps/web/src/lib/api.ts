@@ -106,6 +106,21 @@ export interface PlanRow {
   maxUsers: number | null;
 }
 
+export interface DashboardStats {
+  formationsActives: number;
+  sessionsTotal: number;
+  sessions: Record<string, number>;
+  sessionsActives: number;
+  inscriptionsActives: number;
+  apprenants: number;
+  heuresProgrammees: number;
+  conventions: Record<string, { nb: number; montantCents: number }>;
+  caSigneCents: number;
+  reclamationsOuvertes: number;
+  aCloturer: { id: string; intitule: string; dateFin: string }[];
+  prochainesSessions: { id: string; intitule: string; dateDebut: string; inscrits: number }[];
+}
+
 export interface ConventionRow {
   id: string;
   numero: string;
@@ -493,6 +508,11 @@ export const api = {
   },
   runPurge(auth: AuthState) {
     return request<{ emargements: number; scellements: number; audit: number }>('/admin/jobs/purger', { method: 'POST', auth });
+  },
+
+  // --- Pilotage / statistiques ---
+  statsDashboard(auth: AuthState) {
+    return request<DashboardStats>('/stats/dashboard', { auth });
   },
 
   // --- Conventions ---
