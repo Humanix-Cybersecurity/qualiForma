@@ -155,6 +155,9 @@ export function FacturationPage() {
                   <Button size="sm" variant="ghost" onPress={() => auth && downloadFile(auth, `/factures/${f.id}/facture.pdf`, `${f.numero}.pdf`)}>
                     <Download aria-hidden="true" className="h-4 w-4" />PDF
                   </Button>
+                  <Button size="sm" variant="ghost" onPress={() => auth && downloadFile(auth, `/factures/${f.id}/factur-x.xml`, `factur-x-${f.numero}.xml`)}>
+                    Factur-X
+                  </Button>
                   {f.statut !== 'annulee' ? (
                     <Button size="sm" variant="ghost" onPress={async () => { if (auth && window.confirm(t('facturation.annulerConfirm'))) { await api.annulerFacture(auth, f.id); reload(); } }}>
                       {t('facturation.annuler')}

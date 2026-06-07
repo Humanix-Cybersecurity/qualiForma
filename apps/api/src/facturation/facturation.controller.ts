@@ -84,6 +84,15 @@ export class FacturationController {
     res.send(buffer);
   }
 
+  @Get(':id/factur-x.xml')
+  @Auth('admin_of')
+  async facturX(@Param('id') id: string, @Res() res: Response): Promise<void> {
+    const { xml, filename } = await this.facturation.facturXXml(id);
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(xml);
+  }
+
   @Post(':id/paiements')
   @Auth('admin_of')
   addPaiement(

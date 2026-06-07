@@ -6,6 +6,7 @@ export { renderCertificat } from './certificat';
 export { renderDecompte } from './decompte';
 export { renderFacture, type FactureData, type FactureLigneData } from './facture';
 export { renderDevis, type DevisData } from './devis';
+export { buildFacturXXml } from './facturx';
 export {
   renderConvention,
   renderConvocation,

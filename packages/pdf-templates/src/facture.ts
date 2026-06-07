@@ -2,6 +2,7 @@
 import { PdfBuilder } from './layout';
 import { eurosFromCents, frDate, frDateTime } from './format';
 import type { Organisme } from './types';
+import { buildFacturXXml } from './facturx';
 
 export interface FactureLigneData {
   designation: string;
@@ -70,6 +71,10 @@ export async function renderFacture(data: FactureData): Promise<Uint8Array> {
   }
   pdf.spacer(6);
   pdf.text(`Document généré le ${frDateTime(data.generatedAt)}.`, { size: 8 });
+
+  // Facture hybride : on embarque le XML Factur-X (profil MINIMUM) en pièce jointe.
+  const xml = buildFacturXXml(data);
+  pdf.attachFile(new TextEncoder().encode(xml), 'factur-x.xml', 'application/xml', 'Factur-X (MINIMUM)');
 
   return pdf.finalize();
 }

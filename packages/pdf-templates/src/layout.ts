@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from 'pdf-lib';
+import { AFRelationship, PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from 'pdf-lib';
 import QRCode from 'qrcode';
 import { TEMPLATE_VERSION } from './types';
 
@@ -84,6 +84,11 @@ export class PdfBuilder {
     const png = await QRCode.toBuffer(data, { type: 'png', margin: 0, width: size * 3 });
     const img = await this.doc.embedPng(png);
     this.page.drawImage(img, { x: A4.w - MARGIN - size, y: this.y - size + 10, width: size, height: size });
+  }
+
+  /** Embarque un fichier (ex. factur-x.xml) en pièce jointe du PDF (socle Factur-X / PDF-A3). */
+  attachFile(bytes: Uint8Array, filename: string, mimeType: string, description: string): void {
+    void this.doc.attach(bytes, filename, { mimeType, description, afRelationship: AFRelationship.Alternative });
   }
 
   async finalize(): Promise<Uint8Array> {

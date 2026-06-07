@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Financeur, MoyenPaiement } from '@prisma/client';
-import { renderFacture } from '@humanix/pdf-templates';
+import { renderFacture, buildFacturXXml } from '@humanix/pdf-templates';
 import type { AccessClaims } from '@humanix/domain';
 import { requireTenantContext } from '../tenant/tenant-context';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
@@ -214,6 +214,38 @@ export class FacturationService {
         generatedAt: new Date().toISOString(),
       });
       return { buffer: Buffer.from(bytes), filename: `${f.numero}.pdf` };
+    });
+  }
+
+  /** XML Factur-X (profil MINIMUM) d'une facture, pour dépôt PDP / archivage structuré. */
+  async facturXXml(id: string): Promise<{ xml: string; filename: string }> {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const f = await tx.facture.findFirst({ where: { id }, include: { lignes: true, paiements: true } });
+      if (!f) throw new NotFoundException('Facture introuvable.');
+      const tenant = await tx.tenant.findFirst();
+      const entreprise = f.entrepriseId
+        ? await tx.entrepriseCliente.findFirst({ where: { id: f.entrepriseId }, select: { raisonSociale: true } })
+        : null;
+      const paye = f.paiements.reduce((a, p) => a + p.montantCents, 0);
+      const xml = buildFacturXXml({
+        organisme: { nom: tenant?.name ?? 'Organisme' },
+        numero: f.numero,
+        dateEmission: f.dateEmission.toISOString(),
+        ...(entreprise ? { client: entreprise.raisonSociale } : {}),
+        lignes: f.lignes.map((l) => ({
+          designation: l.designation,
+          quantite: Number(l.quantite),
+          prixUnitaireCents: l.prixUnitaireCents,
+          tvaTauxBp: l.tvaTauxBp,
+          montantHtCents: Math.round(Number(l.quantite) * l.prixUnitaireCents),
+        })),
+        totalHtCents: f.totalHtCents,
+        totalTvaCents: f.totalTvaCents,
+        totalTtcCents: f.totalTtcCents,
+        montantPayeCents: paye,
+        generatedAt: new Date().toISOString(),
+      });
+      return { xml, filename: `factur-x-${f.numero}.xml` };
     });
   }
 
