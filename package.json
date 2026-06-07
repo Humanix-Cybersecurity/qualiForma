@@ -11,7 +11,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "turbo run lint",
+    "lint": "eslint .",
+    "lint:spdx": "node scripts/check-spdx.mjs",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:a11y": "turbo run test:a11y",
@@ -19,7 +20,12 @@
     "sbom": "syft dir:. -o cyclonedx-json=docs/sbom/sbom.json"
   },
   "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "eslint": "^9.13.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "globals": "^15.11.0",
     "turbo": "^2.1.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.10.0"
   }
 }

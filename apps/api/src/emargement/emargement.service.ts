@@ -17,7 +17,6 @@ import {
 } from '@humanix/signature-engine';
 import type { AccessClaims } from '@humanix/domain';
 import { TenantPrismaService, type TenantClient } from '../prisma/tenant-prisma.service';
-import { requireTenantContext } from '../tenant/tenant-context';
 
 export interface SignInput {
   methode: 'code' | 'qr' | 'manuscrite';
