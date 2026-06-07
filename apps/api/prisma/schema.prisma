@@ -396,6 +396,7 @@ model Creneau {
   formateur   User?        @relation("CreneauFormateur", fields: [formateurId], references: [id])
   emargements Emargement[]
   jetons      SignatureJeton[]
+  scellements ScellementCreneau[]
 
   @@unique([sessionId, date, periode])
   @@index([tenantId])
@@ -421,6 +422,32 @@ model SignatureJeton {
   @@index([tenantId])
   @@index([creneauId])
   @@map("signature_jeton")
+}
+
+/// Scellement CONSOLIDÉ d'un créneau (séquence/demi-journée) : un seul horodatage QUALIFIÉ
+/// couvre l'empreinte de la feuille d'émargement consolidée (optimisation coût, art. L.6362-6).
+/// Append-only / immuable (trigger SGBD). Niveau visé : signature AVANCÉE (AES) + horodatage qualifié.
+model ScellementCreneau {
+  id                String         @id @default(uuid()) @db.Uuid
+  tenantId          String         @map("tenant_id") @db.Uuid
+  creneauId         String         @map("creneau_id") @db.Uuid
+  /// Empreinte SHA-256 de la feuille consolidée (toutes les signatures du créneau).
+  consolidatedSha256 String        @map("consolidated_sha256")
+  nbSignatures      Int            @map("nb_signatures")
+  /// Niveau juridique cité (ex. « AES + horodatage qualifié eIDAS »).
+  niveau            String
+  horodatageType    HorodatageType @map("horodatage_type")
+  horodatageToken   String?        @map("horodatage_token")
+  auditPrevHash     String?        @map("audit_prev_hash")
+  auditHash         String         @map("audit_hash")
+  verificationToken String         @unique @map("verification_token")
+  createdAt         DateTime       @default(now()) @map("created_at")
+
+  creneau Creneau @relation(fields: [creneauId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([creneauId])
+  @@map("scellement_creneau")
 }
 
 // ===========================================================================

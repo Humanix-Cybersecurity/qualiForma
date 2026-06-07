@@ -49,11 +49,17 @@ const envSchema = z.object({
   // --- Limites d'upload (sécurité, ADR 0006) ---
   UPLOAD_MAX_BYTES: z.coerce.number().int().positive().default(52_428_800), // 50 Mio
 
-  // --- Horodatage qualifié RFC 3161 / eIDAS ---
-  // Désactivé par défaut → mode dégradé (horodatage serveur signé). Activer en prod.
-  TSA_ENABLED: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  // --- Horodatage RFC 3161 / eIDAS (souveraineté) ---
+  // qualified : PSCo qualifié FR (Universign/Datasure…) — OBLIGATOIRE en production.
+  // internal  : horodatage interne signé (DEV uniquement). mock : tests.
+  TSA_MODE: z.enum(['qualified', 'internal', 'mock']).default('internal'),
   TSA_URL: z.string().url().optional(),
   TSA_POLICY_OID: z.string().optional(),
+  // Liste blanche d'hôtes TSA autorisés (PSCo qualifiés FR). Vide = pas de contrainte d'hôte.
+  TSA_ALLOWED_HOSTS: z
+    .string()
+    .default('')
+    .transform((v) => v.split(',').map((s) => s.trim()).filter(Boolean)),
 
   // --- Jetons de signature anti-fraude (QR dynamique) ---
   JETON_TTL_SECONDS: z.coerce.number().int().positive().default(60), // QR projeté (rotatif)

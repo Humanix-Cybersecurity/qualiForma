@@ -111,3 +111,8 @@ DROP TRIGGER IF EXISTS audit_log_immuable ON audit_log;
 CREATE TRIGGER audit_log_immuable
   BEFORE UPDATE OR DELETE ON audit_log
   FOR EACH ROW EXECUTE FUNCTION refuser_mutation();
+
+DROP TRIGGER IF EXISTS scellement_creneau_immuable ON scellement_creneau;
+CREATE TRIGGER scellement_creneau_immuable
+  BEFORE UPDATE OR DELETE ON scellement_creneau
+  FOR EACH ROW EXECUTE FUNCTION refuser_mutation();

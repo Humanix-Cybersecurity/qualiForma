@@ -7,6 +7,7 @@ import { Auth } from '../auth/auth.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { EmargementService, type SignInput } from './emargement.service';
+import { ScellementService } from './scellement.service';
 
 const signSchema = z.object({
   methode: z.enum(['code', 'qr', 'manuscrite', 'lien']),
@@ -23,7 +24,20 @@ const jetonSchema = z.object({ pourUserId: z.string().uuid().optional() });
 
 @Controller()
 export class EmargementController {
-  constructor(private readonly emargement: EmargementService) {}
+  constructor(
+    private readonly emargement: EmargementService,
+    private readonly scellement: ScellementService,
+  ) {}
+
+  /**
+   * Scelle la feuille d'émargement CONSOLIDÉE du créneau avec UN horodatage qualifié (eIDAS).
+   * À appeler quand la séquence est complète. Réservé formateur/admin.
+   */
+  @Post('creneaux/:id/sceller')
+  @Auth('formateur', 'admin_of')
+  sceller(@Param('id') id: string, @CurrentUser() user: AccessClaims) {
+    return this.scellement.sceller(id, user);
+  }
 
   /** Le formateur ouvre la fenêtre de signature ; renvoie le code à projeter en salle. */
   @Post('creneaux/:id/signature/ouvrir')

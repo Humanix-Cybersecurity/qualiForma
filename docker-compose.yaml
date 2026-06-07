@@ -76,6 +76,8 @@ services:
       S3_SSE: "false"
       CLAMAV_HOST: clamav
       CLAMAV_PORT: 3310
+      # Horodatage : 'internal' en dev. En PROD => 'qualified' + TSA_URL (PSCo FR), sinon démarrage refusé.
+      TSA_MODE: internal
     ports: ["3000:3000"]
     depends_on:
       postgres: { condition: service_healthy }

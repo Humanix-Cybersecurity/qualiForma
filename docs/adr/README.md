@@ -12,5 +12,6 @@ Format : [MADR](https://adr.github.io/madr/) léger. Statuts : `Proposé` → `A
 | [0005](0005-offline-first-emargement.md) | Émargement offline-first, horodatage serveur faisant foi | Proposé |
 | [0006](0006-stockage-objet-et-scan-uploads.md) | Stockage objet MinIO + scan ClamAV + chiffrement | Proposé |
 | [0007](0007-licence-agplv3-et-modele-saas.md) | Licence AGPLv3 et séparation cœur / exploitation SaaS | Proposé |
+| [0008](0008-souverainete-services-de-confiance.md) | Souveraineté & services de confiance (TSA qualifiée FR, infra, AES) | Proposé |
 
 > Tous les ADR sont **Proposés** tant que l'étape 1 du bootstrap n'est pas validée.
