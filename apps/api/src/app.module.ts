@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuditModule } from './audit/audit.module';
@@ -16,6 +17,7 @@ import { SuperAdminModule } from './superadmin/superadmin.module';
 import { RgpdModule } from './rgpd/rgpd.module';
 import { ProfileModule } from './profile/profile.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { JobsModule } from './jobs/jobs.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -26,6 +28,7 @@ import { HealthController } from './health/health.controller';
         redact: ['req.headers.authorization', 'req.headers.cookie'],
       },
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuditModule,
     SignatureModule,
@@ -40,6 +43,7 @@ import { HealthController } from './health/health.controller';
     RgpdModule,
     ProfileModule,
     CatalogModule,
+    JobsModule,
   ],
   controllers: [HealthController],
 })

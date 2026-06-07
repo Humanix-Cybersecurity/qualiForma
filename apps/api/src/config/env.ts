@@ -68,6 +68,9 @@ const envSchema = z.object({
   // --- Conservation des preuves (RGPD) : 10 ans par défaut pour la valeur probante ---
   PREUVE_RETENTION_YEARS: z.coerce.number().int().positive().default(10),
 
+  // --- Jobs planifiés (relances + purge RGPD). Nécessite DATABASE_ADMIN_URL (accès privilégié). ---
+  JOBS_ENABLED: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+
   // --- Stockage WORM (souveraineté) : object-lock + rétention sur les objets ---
   S3_OBJECT_LOCK: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   S3_RETENTION_YEARS: z.coerce.number().int().positive().default(10),

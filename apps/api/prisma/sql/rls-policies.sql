@@ -94,11 +94,22 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 -- IMMUABILITÉ DES PREUVES (valeur probante) : interdit toute modification ou
 -- suppression a posteriori des enregistrements probants, MÊME pour le propriétaire,
 -- au niveau du SGBD (défense en profondeur au-delà des GRANT, ADR 0003).
+-- UPDATE toujours interdit (append-only). DELETE interdit PENDANT la durée de conservation,
+-- autorisé APRÈS (purge RGPD légale). La durée (ans) vient de la variable de session
+-- `app.retention_years` (défaut 10), positionnée par le job de purge privilégié.
 CREATE OR REPLACE FUNCTION refuser_mutation() RETURNS trigger
   LANGUAGE plpgsql
 AS $$
+DECLARE
+  retention int := COALESCE(NULLIF(current_setting('app.retention_years', true), '')::int, 10);
 BEGIN
-  RAISE EXCEPTION 'Enregistrement immuable (append-only) : % interdit sur %', TG_OP, TG_TABLE_NAME;
+  IF TG_OP = 'UPDATE' THEN
+    RAISE EXCEPTION 'Enregistrement immuable (append-only) : UPDATE interdit sur %', TG_TABLE_NAME;
+  END IF;
+  IF OLD.created_at > now() - make_interval(years => retention) THEN
+    RAISE EXCEPTION 'Suppression interdite avant la fin de conservation (% ans) sur %', retention, TG_TABLE_NAME;
+  END IF;
+  RETURN OLD;
 END;
 $$;
 

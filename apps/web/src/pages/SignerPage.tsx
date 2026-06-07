@@ -7,6 +7,7 @@ import { Alert, Button, Card, TextField } from '@humanix/ui';
 import { useAuth } from '../auth/AuthProvider';
 import { api, API_URL } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
+import { SignaturePad } from '../components/SignaturePad';
 
 export function SignerPage() {
   const { t } = useTranslation();
@@ -16,9 +17,14 @@ export function SignerPage() {
   const { auth } = useAuth();
   const [methode, setMethode] = useState<'code' | 'manuscrite'>('code');
   const [code, setCode] = useState('');
+  const [hasDrawing, setHasDrawing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Désactive la soumission tant que la condition de la méthode n'est pas remplie.
+  const submitDisabled =
+    loading || (!jeton && methode === 'manuscrite' && !hasDrawing) || (!jeton && methode === 'code' && code.length !== 6);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -92,11 +98,16 @@ export function SignerPage() {
                   inputMode="numeric"
                   isRequired
                 />
-              ) : null}
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-medium text-slate-800">{t('sign.drawHint')}</span>
+                  <SignaturePad onChange={setHasDrawing} />
+                </div>
+              )}
             </>
           )}
 
-          <Button type="submit" isDisabled={loading} className="self-start">
+          <Button type="submit" isDisabled={submitDisabled} className="self-start">
             {loading ? t('common.loading') : t('sign.confirm')}
           </Button>
         </form>

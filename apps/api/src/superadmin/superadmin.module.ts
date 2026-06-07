@@ -10,5 +10,6 @@ import { SuperAdminService } from './superadmin.service';
   imports: [AuthModule],
   controllers: [SuperAdminController],
   providers: [SuperAdminService, SuperAdminPrismaService],
+  exports: [SuperAdminPrismaService], // client privilégié réutilisé par les jobs (relances/purge)
 })
 export class SuperAdminModule {}

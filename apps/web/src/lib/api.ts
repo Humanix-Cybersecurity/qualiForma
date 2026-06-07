@@ -168,6 +168,12 @@ export const api = {
       { method: 'POST', auth, body: {} },
     );
   },
+  sceller(auth: AuthState, creneauId: string) {
+    return request<{ nbSignatures: number; niveau: string; horodatageQualifie: boolean }>(
+      `/creneaux/${creneauId}/sceller`,
+      { method: 'POST', auth, body: {} },
+    );
+  },
   ouvrirSignature(auth: AuthState, creneauId: string) {
     return request<{ code: string }>(`/creneaux/${creneauId}/signature/ouvrir`, {
       method: 'POST',
