@@ -94,7 +94,21 @@ export function UtilisateursPage() {
                   </p>
                   <p className="text-sm text-slate-500">{u.email}</p>
                 </div>
-                <Badge tone="brand">{t(`roles.${u.role}`)}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge tone="brand">{t(`roles.${u.role}`)}</Badge>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onPress={async () => {
+                      if (!auth) return;
+                      if (!window.confirm(t('users.anonymiseConfirm'))) return;
+                      await api.anonymiserUser(auth, u.id);
+                      reload();
+                    }}
+                  >
+                    {t('users.anonymise')}
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}

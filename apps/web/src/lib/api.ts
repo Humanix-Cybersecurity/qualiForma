@@ -219,6 +219,12 @@ export const api = {
   me(auth: AuthState) {
     return request<Claims>('/auth/me', { auth });
   },
+  mfaSetup(auth: AuthState) {
+    return request<{ secret: string; otpauthUrl: string }>('/auth/mfa/setup', { method: 'POST', auth });
+  },
+  mfaConfirm(auth: AuthState, code: string) {
+    return request<void>('/auth/mfa/confirm', { method: 'POST', auth, body: { code } });
+  },
   mesCreneaux(auth: AuthState) {
     return request<Creneau[]>('/me/creneaux', { auth });
   },
@@ -324,6 +330,9 @@ export const api = {
   listUsers(auth: AuthState, role?: 'apprenant' | 'formateur' | 'referent_handicap') {
     return request<UserRow[]>(`/users${role ? `?role=${role}` : ''}`, { auth });
   },
+  anonymiserUser(auth: AuthState, userId: string) {
+    return request<unknown>(`/rgpd/users/${userId}/anonymiser`, { method: 'POST', auth });
+  },
   completude(auth: AuthState, sessionId: string) {
     return request<SessionCompletude>(`/sessions/${sessionId}/completude`, { auth });
   },
@@ -343,6 +352,18 @@ export const api = {
   },
   questionnairesAdmin(auth: AuthState) {
     return request<{ id: string; type: string; titre: string; sessionId: string | null }[]>('/questionnaires', { auth });
+  },
+  createQuestionnaire(
+    auth: AuthState,
+    body: {
+      type: 'positionnement_amont' | 'evaluation_acquis' | 'satisfaction_chaud' | 'satisfaction_froid' | 'recueil_besoin';
+      titre: string;
+      sessionId?: string;
+      anonyme?: boolean;
+      questions: { libelle: string; type: 'texte_libre' | 'choix_unique' | 'choix_multiple' | 'echelle' | 'booleen'; options?: unknown; obligatoire?: boolean }[];
+    },
+  ) {
+    return request<{ id: string }>('/questionnaires', { method: 'POST', auth, body });
   },
   restitution(auth: AuthState, id: string) {
     return request<{
@@ -373,8 +394,23 @@ export const api = {
   setTenantStatus(auth: AuthState, id: string, status: 'active' | 'suspended') {
     return request<unknown>(`/admin/tenants/${id}/status`, { method: 'PATCH', auth, body: { status } });
   },
+  setQuota(auth: AuthState, tenantId: string, body: { maxUsers?: number; maxActiveSessions?: number }) {
+    return request<unknown>(`/admin/tenants/${tenantId}/quota`, { method: 'PUT', auth, body });
+  },
   plans(auth: AuthState) {
     return request<PlanRow[]>('/admin/plans', { auth });
+  },
+  createPlan(
+    auth: AuthState,
+    body: { code: string; name: string; priceCents?: number; maxUsers?: number; maxActiveSessions?: number },
+  ) {
+    return request<{ id: string }>('/admin/plans', { method: 'POST', auth, body });
+  },
+  runRelances(auth: AuthState) {
+    return request<{ relances: number }>('/admin/jobs/relancer', { method: 'POST', auth });
+  },
+  runPurge(auth: AuthState) {
+    return request<{ emargements: number; scellements: number; audit: number }>('/admin/jobs/purger', { method: 'POST', auth });
   },
 
   // --- Réclamations / amélioration continue ---

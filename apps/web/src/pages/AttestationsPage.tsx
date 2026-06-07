@@ -32,17 +32,27 @@ export function AttestationsPage() {
                   <p className="font-medium text-slate-900">{i.formation}</p>
                   <p className="text-sm text-slate-500">{i.session ?? ''} · {i.dateDebut.slice(0, 10)} → {i.dateFin.slice(0, 10)}</p>
                 </div>
-                {i.certificat && i.certificat.statut === 'emis' ? (
+                <div className="flex items-center gap-2">
                   <Button
                     size="sm"
-                    onPress={() => auth && downloadFile(auth, `/me/certificat/${i.id}`, `${i.certificat?.numero ?? 'certificat'}.pdf`)}
+                    variant="secondary"
+                    onPress={() => auth && downloadFile(auth, `/inscriptions/${i.id}/convocation.pdf`, `convocation-${i.id}.pdf`)}
                   >
                     <Download aria-hidden="true" className="h-4 w-4" />
-                    {t('attestations.download')}
+                    {t('attestations.convocation')}
                   </Button>
-                ) : (
-                  <Badge tone="neutral">{t('attestations.notReady')}</Badge>
-                )}
+                  {i.certificat && i.certificat.statut === 'emis' ? (
+                    <Button
+                      size="sm"
+                      onPress={() => auth && downloadFile(auth, `/me/certificat/${i.id}`, `${i.certificat?.numero ?? 'certificat'}.pdf`)}
+                    >
+                      <Download aria-hidden="true" className="h-4 w-4" />
+                      {t('attestations.download')}
+                    </Button>
+                  ) : (
+                    <Badge tone="neutral">{t('attestations.notReady')}</Badge>
+                  )}
+                </div>
               </div>
             </Card>
           ))}

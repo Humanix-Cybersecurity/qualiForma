@@ -32,12 +32,14 @@ export function navForRole(role: Claims['role']): NavItem[] {
         { to: '/app/creneaux', labelKey: 'creneaux', icon: CalendarCheck },
         { to: '/app/questionnaires', labelKey: 'questionnaires', icon: ClipboardList },
         { to: '/app/attestations', labelKey: 'attestations', icon: Award },
+        { to: '/app/reclamations', labelKey: 'reclamations', icon: MessageSquareWarning },
       ];
     case 'formateur':
       return [
         DASHBOARD,
         { to: '/app/creneaux', labelKey: 'creneaux', icon: CalendarCheck },
         { to: '/app/sessions', labelKey: 'sessions', icon: CalendarCheck },
+        { to: '/app/reclamations', labelKey: 'reclamations', icon: MessageSquareWarning },
       ];
     case 'admin_of':
       return [

@@ -10,16 +10,18 @@ const STATUTS = ['ouverte', 'en_traitement', 'resolue', 'cloturee'] as const;
 
 export function ReclamationsPage() {
   const { t } = useTranslation();
-  const { auth } = useAuth();
+  const { auth, claims } = useAuth();
+  const isAdmin = claims?.role === 'admin_of';
   const [rows, setRows] = useState<ReclamationRow[] | null>(null);
   const [objet, setObjet] = useState('');
   const [description, setDescription] = useState('');
   const [actions, setActions] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
 
+  // La liste/traitement est réservée à l'admin ; les autres rôles ne font que déposer.
   const reload = useCallback(() => {
-    if (auth) api.reclamations(auth).then(setRows).catch(() => setRows([]));
-  }, [auth]);
+    if (auth && isAdmin) api.reclamations(auth).then(setRows).catch(() => setRows([]));
+  }, [auth, isAdmin]);
   useEffect(reload, [reload]);
 
   const statutLabel = (s: string) =>
@@ -62,7 +64,7 @@ export function ReclamationsPage() {
         </form>
       </Card>
 
-      {rows === null ? (
+      {!isAdmin ? null : rows === null ? (
         <Spinner label={t('common.loading')} />
       ) : rows.length === 0 ? (
         <Card><p className="text-slate-500">{t('reclamations.none')}</p></Card>

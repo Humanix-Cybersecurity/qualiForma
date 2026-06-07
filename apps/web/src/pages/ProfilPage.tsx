@@ -3,8 +3,9 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Badge, Button, Card, CardHeader, Spinner, TextField, Textarea } from '@humanix/ui';
 import { useAuth } from '../auth/AuthProvider';
-import { api, type Profile } from '../lib/api';
+import { api, downloadFile, type Profile } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
+import { QrCode } from '../components/QrCode';
 
 export function ProfilPage() {
   const { t } = useTranslation();
@@ -20,6 +21,34 @@ export function ProfilPage() {
   const [newPassword, setNewPassword] = useState('');
   const [pwdMsg, setPwdMsg] = useState<string | null>(null);
   const [pwdError, setPwdError] = useState<string | null>(null);
+
+  // Enrôlement MFA (TOTP)
+  const [mfaEnroll, setMfaEnroll] = useState<{ secret: string; otpauthUrl: string } | null>(null);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaError, setMfaError] = useState<string | null>(null);
+
+  async function startMfa() {
+    if (!auth) return;
+    setMfaError(null);
+    try {
+      setMfaEnroll(await api.mfaSetup(auth));
+    } catch (err) {
+      setMfaError(err instanceof Error ? err.message : t('common.error'));
+    }
+  }
+  async function confirmMfa(e: FormEvent) {
+    e.preventDefault();
+    if (!auth) return;
+    setMfaError(null);
+    try {
+      await api.mfaConfirm(auth, mfaCode);
+      setMfaEnroll(null);
+      setMfaCode('');
+      setProfile((p) => (p ? { ...p, mfaEnabled: true } : p));
+    } catch (err) {
+      setMfaError(err instanceof Error ? err.message : t('common.error'));
+    }
+  }
 
   useEffect(() => {
     if (!auth) return;
@@ -113,12 +142,35 @@ export function ProfilPage() {
         {/* Sécurité */}
         <Card>
           <CardHeader title={t('profile.security')} />
-          <p className="mb-4 flex items-center gap-2 text-sm text-slate-600">
-            {t('profile.mfa')} :
-            <Badge tone={profile.mfaEnabled ? 'success' : 'neutral'}>
-              {profile.mfaEnabled ? t('profile.mfaEnabled') : t('profile.mfaDisabled')}
-            </Badge>
-          </p>
+          <div className="mb-4 flex flex-col gap-3">
+            <p className="flex items-center gap-2 text-sm text-slate-600">
+              {t('profile.mfa')} :
+              <Badge tone={profile.mfaEnabled ? 'success' : 'neutral'}>
+                {profile.mfaEnabled ? t('profile.mfaEnabled') : t('profile.mfaDisabled')}
+              </Badge>
+            </p>
+            {mfaError ? <Alert tone="error">{mfaError}</Alert> : null}
+            {!profile.mfaEnabled && !mfaEnroll ? (
+              <Button size="sm" variant="secondary" className="self-start" onPress={startMfa}>
+                {t('profile.mfaEnable')}
+              </Button>
+            ) : null}
+            {mfaEnroll ? (
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="text-sm text-slate-700">{t('profile.mfaScan')}</p>
+                <div className="my-2"><QrCode value={mfaEnroll.otpauthUrl} alt={t('profile.mfaQrAlt')} size={180} /></div>
+                <p className="break-all text-xs text-slate-500">
+                  {t('profile.mfaSecret')} : <code className="font-mono">{mfaEnroll.secret}</code>
+                </p>
+                <form onSubmit={confirmMfa} className="mt-3 flex items-end gap-2">
+                  <div className="flex-1">
+                    <TextField label={t('profile.mfaCode')} value={mfaCode} onChange={setMfaCode} inputMode="numeric" isRequired />
+                  </div>
+                  <Button type="submit" size="sm">{t('profile.mfaConfirm')}</Button>
+                </form>
+              </div>
+            ) : null}
+          </div>
           {pwdMsg ? <div className="mb-3"><Alert tone="success">{pwdMsg}</Alert></div> : null}
           {pwdError ? <div className="mb-3"><Alert tone="error">{pwdError}</Alert></div> : null}
           <form onSubmit={savePassword} className="flex flex-col gap-4">
@@ -141,6 +193,18 @@ export function ProfilPage() {
             />
             <Button type="submit" className="self-start">{t('profile.changePassword')}</Button>
           </form>
+        </Card>
+
+        {/* RGPD — droits de la personne */}
+        <Card>
+          <CardHeader title={t('profile.rgpd')} subtitle={t('profile.rgpdHelp')} />
+          <Button
+            variant="secondary"
+            className="self-start"
+            onPress={() => auth && downloadFile(auth, '/rgpd/me/export', 'mes-donnees.json')}
+          >
+            {t('profile.rgpdExport')}
+          </Button>
         </Card>
       </div>
     </>

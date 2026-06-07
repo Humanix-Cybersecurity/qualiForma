@@ -46,6 +46,7 @@ export function AdminTenantsPage() {
   return (
     <>
       <PageHeader title={t('admin.tenantsTitle')} />
+      <JobsOps />
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <CardHeader title={t('admin.onboard')} />
@@ -83,6 +84,7 @@ export function AdminTenantsPage() {
                       </Button>
                     </div>
                   </div>
+                  <QuotaForm tenantId={row.id} />
                 </Card>
               ))}
             </ul>
@@ -90,5 +92,75 @@ export function AdminTenantsPage() {
         </div>
       </div>
     </>
+  );
+}
+
+/** Édition des quotas effectifs d'un tenant (surcharge du plan). */
+function QuotaForm({ tenantId }: { tenantId: string }) {
+  const { t } = useTranslation();
+  const { auth } = useAuth();
+  const [maxUsers, setMaxUsers] = useState('');
+  const [maxSessions, setMaxSessions] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    if (!auth) return;
+    const body: { maxUsers?: number; maxActiveSessions?: number } = {};
+    if (maxUsers) body.maxUsers = Number(maxUsers);
+    if (maxSessions) body.maxActiveSessions = Number(maxSessions);
+    await api.setQuota(auth, tenantId, body);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  return (
+    <form onSubmit={save} className="mt-3 flex flex-wrap items-end gap-2 border-t border-slate-100 pt-3">
+      <div className="w-32">
+        <TextField label={t('admin.quotaUsers')} value={maxUsers} onChange={setMaxUsers} inputMode="numeric" />
+      </div>
+      <div className="w-32">
+        <TextField label={t('admin.quotaSessions')} value={maxSessions} onChange={setMaxSessions} inputMode="numeric" />
+      </div>
+      <Button type="submit" size="sm" variant="secondary">{t('admin.quotaSave')}</Button>
+      {saved ? <span className="text-sm text-green-700">{t('common.saved')}</span> : null}
+    </form>
+  );
+}
+
+/** Exécution manuelle des jobs planifiés (relances, purge RGPD). */
+function JobsOps() {
+  const { t } = useTranslation();
+  const { auth } = useAuth();
+  const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(kind: 'relances' | 'purge') {
+    if (!auth) return;
+    setMsg(null);
+    setError(null);
+    try {
+      if (kind === 'relances') {
+        const r = await api.runRelances(auth);
+        setMsg(t('admin.relancesDone', { count: r.relances }));
+      } else {
+        const r = await api.runPurge(auth);
+        setMsg(t('admin.purgeDone', { count: r.emargements + r.scellements + r.audit }));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.error'));
+    }
+  }
+
+  return (
+    <Card className="mb-6">
+      <CardHeader title={t('admin.opsTitle')} subtitle={t('admin.opsHelp')} />
+      {msg ? <div className="mb-3"><Alert tone="success">{msg}</Alert></div> : null}
+      {error ? <div className="mb-3"><Alert tone="error">{error}</Alert></div> : null}
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="secondary" onPress={() => run('relances')}>{t('admin.runRelances')}</Button>
+        <Button size="sm" variant="danger" onPress={() => run('purge')}>{t('admin.runPurge')}</Button>
+      </div>
+    </Card>
   );
 }

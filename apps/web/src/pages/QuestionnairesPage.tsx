@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Badge, Button, Card, CardHeader, Spinner } from '@humanix/ui';
+import { Alert, Badge, Button, Card, CardHeader, Spinner, TextField } from '@humanix/ui';
 import { useAuth } from '../auth/AuthProvider';
 import { api, downloadFile, type QuestionnaireMine } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
@@ -185,7 +185,10 @@ function AdminQuestionnaires() {
   const [list, setList] = useState<{ id: string; titre: string; type: string }[] | null>(null);
   const [resti, setResti] = useState<Awaited<ReturnType<typeof api.restitution>> | null>(null);
 
-  useEffect(() => { if (auth) api.questionnairesAdmin(auth).then(setList).catch(() => setList([])); }, [auth]);
+  const reload = useCallback(() => {
+    if (auth) api.questionnairesAdmin(auth).then(setList).catch(() => setList([]));
+  }, [auth]);
+  useEffect(reload, [reload]);
 
   async function openResti(id: string) {
     if (!auth) return;
@@ -195,6 +198,7 @@ function AdminQuestionnaires() {
   return (
     <>
       <PageHeader title={t('questionnaires.title')} />
+      <NewQuestionnaire onCreated={reload} />
       {resti ? (
         <Card className="mb-6">
           <CardHeader
@@ -237,5 +241,148 @@ function AdminQuestionnaires() {
         </ul>
       )}
     </>
+  );
+}
+
+const QUESTIONNAIRE_TYPES = [
+  'positionnement_amont',
+  'evaluation_acquis',
+  'satisfaction_chaud',
+  'satisfaction_froid',
+  'recueil_besoin',
+] as const;
+const QUESTION_TYPES = ['texte_libre', 'choix_unique', 'choix_multiple', 'echelle', 'booleen'] as const;
+
+interface DraftQuestion {
+  libelle: string;
+  type: (typeof QUESTION_TYPES)[number];
+  obligatoire: boolean;
+  choixText: string;
+  min: string;
+  max: string;
+}
+const emptyQuestion = (): DraftQuestion => ({ libelle: '', type: 'texte_libre', obligatoire: true, choixText: '', min: '1', max: '5' });
+
+/** Création d'un questionnaire avec ses questions (admin). */
+function NewQuestionnaire({ onCreated }: { onCreated: () => void }) {
+  const { t } = useTranslation();
+  const { auth } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [type, setType] = useState<(typeof QUESTIONNAIRE_TYPES)[number]>('satisfaction_chaud');
+  const [titre, setTitre] = useState('');
+  const [anonyme, setAnonyme] = useState(false);
+  const [questions, setQuestions] = useState<DraftQuestion[]>([emptyQuestion()]);
+  const [error, setError] = useState<string | null>(null);
+
+  function patch(i: number, p: Partial<DraftQuestion>) {
+    setQuestions((qs) => qs.map((q, idx) => (idx === i ? { ...q, ...p } : q)));
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!auth) return;
+    setError(null);
+    try {
+      const payloadQuestions = questions
+        .filter((q) => q.libelle.trim())
+        .map((q) => {
+          let options: unknown;
+          if (q.type === 'choix_unique' || q.type === 'choix_multiple') {
+            options = { choix: q.choixText.split(',').map((c) => c.trim()).filter(Boolean) };
+          } else if (q.type === 'echelle') {
+            options = { min: Number(q.min), max: Number(q.max) };
+          }
+          return { libelle: q.libelle.trim(), type: q.type, obligatoire: q.obligatoire, ...(options ? { options } : {}) };
+        });
+      if (payloadQuestions.length === 0) {
+        setError(t('questionnaires.needQuestion'));
+        return;
+      }
+      await api.createQuestionnaire(auth, { type, titre, anonyme, questions: payloadQuestions });
+      setTitre('');
+      setQuestions([emptyQuestion()]);
+      setOpen(false);
+      onCreated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.error'));
+    }
+  }
+
+  if (!open) {
+    return (
+      <div className="mb-6">
+        <Button size="sm" onPress={() => setOpen(true)}>{t('questionnaires.create')}</Button>
+      </div>
+    );
+  }
+
+  return (
+    <Card className="mb-6">
+      <CardHeader title={t('questionnaires.create')} />
+      {error ? <div className="mb-3"><Alert tone="error">{error}</Alert></div> : null}
+      <form onSubmit={submit} className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="qtype" className="text-sm font-medium text-slate-800">{t('questionnaires.type')}</label>
+            <select id="qtype" value={type} onChange={(e) => setType(e.target.value as typeof type)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+              {QUESTIONNAIRE_TYPES.map((qt) => <option key={qt} value={qt}>{t(`questionnaires.types.${qt}`)}</option>)}
+            </select>
+          </div>
+          <TextField label={t('questionnaires.titre')} value={titre} onChange={setTitre} isRequired />
+        </div>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={anonyme} onChange={(e) => setAnonyme(e.target.checked)} />
+          {t('questionnaires.anonyme')}
+        </label>
+
+        <div className="flex flex-col gap-3">
+          {questions.map((q, i) => (
+            <div key={i} className="rounded-lg bg-slate-50 p-3">
+              <div className="flex items-start gap-2">
+                <div className="flex-1">
+                  <TextField label={t('questionnaires.questionLabel', { n: i + 1 })} value={q.libelle} onChange={(v) => patch(i, { libelle: v })} />
+                </div>
+                {questions.length > 1 ? (
+                  <Button type="button" size="sm" variant="ghost" onPress={() => setQuestions((qs) => qs.filter((_, idx) => idx !== i))}>
+                    {t('common.delete')}
+                  </Button>
+                ) : null}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <select value={q.type} onChange={(e) => patch(i, { type: e.target.value as DraftQuestion['type'] })}
+                  aria-label={t('questionnaires.questionType')}
+                  className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm">
+                  {QUESTION_TYPES.map((qt) => <option key={qt} value={qt}>{t(`questionnaires.qtypes.${qt}`)}</option>)}
+                </select>
+                <label className="flex items-center gap-2 text-sm text-slate-600">
+                  <input type="checkbox" checked={q.obligatoire} onChange={(e) => patch(i, { obligatoire: e.target.checked })} />
+                  {t('questionnaires.required')}
+                </label>
+              </div>
+              {(q.type === 'choix_unique' || q.type === 'choix_multiple') ? (
+                <div className="mt-2">
+                  <TextField label={t('questionnaires.choices')} value={q.choixText} onChange={(v) => patch(i, { choixText: v })} description={t('questionnaires.choicesHint')} />
+                </div>
+              ) : null}
+              {q.type === 'echelle' ? (
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <TextField label={t('questionnaires.min')} value={q.min} onChange={(v) => patch(i, { min: v })} inputMode="numeric" />
+                  <TextField label={t('questionnaires.max')} value={q.max} onChange={(v) => patch(i, { max: v })} inputMode="numeric" />
+                </div>
+              ) : null}
+            </div>
+          ))}
+          <Button type="button" size="sm" variant="secondary" className="self-start" onPress={() => setQuestions((qs) => [...qs, emptyQuestion()])}>
+            {t('questionnaires.addQuestion')}
+          </Button>
+        </div>
+
+        <div className="flex gap-2">
+          <Button type="submit">{t('common.submit')}</Button>
+          <Button type="button" variant="ghost" onPress={() => setOpen(false)}>{t('common.cancel')}</Button>
+        </div>
+      </form>
+    </Card>
   );
 }

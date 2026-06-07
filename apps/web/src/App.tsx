@@ -68,7 +68,7 @@ export function App() {
           <Route path="sessions" element={<RoleRoute roles={['admin_of', 'formateur']}><SessionsPage /></RoleRoute>} />
           <Route path="utilisateurs" element={<RoleRoute roles={['admin_of']}><UtilisateursPage /></RoleRoute>} />
           <Route path="documents" element={<RoleRoute roles={['admin_of']}><DocumentsPage /></RoleRoute>} />
-          <Route path="reclamations" element={<RoleRoute roles={['admin_of']}><ReclamationsPage /></RoleRoute>} />
+          <Route path="reclamations" element={<RoleRoute roles={['admin_of', 'formateur', 'apprenant', 'referent_handicap']}><ReclamationsPage /></RoleRoute>} />
           <Route path="tenants" element={<RoleRoute roles={['super_admin']}><AdminTenantsPage /></RoleRoute>} />
           <Route path="plans" element={<RoleRoute roles={['super_admin']}><AdminPlansPage /></RoleRoute>} />
         </Route>
