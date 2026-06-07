@@ -36,6 +36,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "yauzl": "^3.2.0",
+    "yazl": "^3.3.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -52,7 +53,6 @@
     "prisma": "^5.20.0",
     "ts-jest": "^29.2.5",
     "typescript": "^5.6.0",
-    "yazl": "^3.3.1",
     "@types/yazl": "^2.4.5"
   }
 }

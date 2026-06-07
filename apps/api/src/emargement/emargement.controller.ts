@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { Body, Controller, Get, HttpCode, Param, Post, Req } from '@nestjs/common';
-import type { Request } from 'express';
+import { Body, Controller, Get, HttpCode, Param, Post, Req, Res } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { z } from 'zod';
 import type { AccessClaims } from '@humanix/domain';
 import { Auth } from '../auth/auth.decorator';
@@ -8,6 +8,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { EmargementService, type SignInput } from './emargement.service';
 import { ScellementService } from './scellement.service';
+import { ProofPackService } from './proof-pack.service';
 
 const signSchema = z.object({
   methode: z.enum(['code', 'qr', 'manuscrite', 'lien']),
@@ -27,6 +28,7 @@ export class EmargementController {
   constructor(
     private readonly emargement: EmargementService,
     private readonly scellement: ScellementService,
+    private readonly proofPack: ProofPackService,
   ) {}
 
   /**
@@ -37,6 +39,27 @@ export class EmargementController {
   @Auth('formateur', 'admin_of')
   sceller(@Param('id') id: string, @CurrentUser() user: AccessClaims) {
     return this.scellement.sceller(id, user);
+  }
+
+  /** Pack de preuve auto-portant (JSON) du créneau scellé. */
+  @Get('creneaux/:id/pack-preuve')
+  @Auth('formateur', 'admin_of')
+  packPreuve(@Param('id') id: string, @CurrentUser() user: AccessClaims) {
+    return this.proofPack.build(id, user);
+  }
+
+  /** Pack de preuve exportable (ZIP : preuve.json + PDF + jeton + lisez-moi). */
+  @Get('creneaux/:id/pack-preuve.zip')
+  @Auth('formateur', 'admin_of')
+  async packPreuveZip(@Param('id') id: string, @CurrentUser() user: AccessClaims, @Res() res: Response) {
+    const { buffer, filename } = await this.proofPack.buildZip(id, user);
+    res
+      .set({
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Length': String(buffer.length),
+      })
+      .send(buffer);
   }
 
   /** Le formateur ouvre la fenêtre de signature ; renvoie le code à projeter en salle. */

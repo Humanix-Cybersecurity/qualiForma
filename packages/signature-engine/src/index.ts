@@ -7,3 +7,4 @@ export * from './audit-chain';
 export * from './rules';
 export * from './engine';
 export * from './rfc3161';
+export * from './proof-pack';

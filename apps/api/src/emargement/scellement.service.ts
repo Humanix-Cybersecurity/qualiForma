@@ -81,6 +81,7 @@ export class ScellementService {
           tenantId: user.tid,
           creneauId,
           consolidatedSha256,
+          consolidatedPayload: consolidated as object,
           nbSignatures: emargements.length,
           niveau,
           horodatageType: stamp.type,

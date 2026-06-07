@@ -433,6 +433,8 @@ model ScellementCreneau {
   creneauId         String         @map("creneau_id") @db.Uuid
   /// Empreinte SHA-256 de la feuille consolidée (toutes les signatures du créneau).
   consolidatedSha256 String        @map("consolidated_sha256")
+  /// Contenu consolidé EXACT qui a été haché (revérification hors-ligne du pack de preuve).
+  consolidatedPayload Json         @map("consolidated_payload")
   nbSignatures      Int            @map("nb_signatures")
   /// Niveau juridique cité (ex. « AES + horodatage qualifié eIDAS »).
   niveau            String
