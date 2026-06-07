@@ -56,7 +56,7 @@ services:
       NODE_ENV: development
       API_PORT: 3000
       PUBLIC_BASE_URL: http://localhost:3000
-      CORS_ORIGINS: http://localhost:8080
+      CORS_ORIGINS: http://localhost:8080,http://localhost:4173
       # Runtime applicatif (rôle `app`, soumis à la RLS) ; migrations via le propriétaire.
       DATABASE_URL: postgresql://app:app@postgres:5432/humanix?schema=public
       DATABASE_MIGRATION_URL: postgresql://humanix_admin:humanix_admin@postgres:5432/humanix?schema=public

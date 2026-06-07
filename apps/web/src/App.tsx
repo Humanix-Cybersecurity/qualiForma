@@ -1,18 +1,36 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import type { JSX } from 'react';
 import { useAuth } from './auth/AuthProvider';
+import type { Claims } from './lib/api';
+import { AppShell } from './components/AppShell';
+import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { ProfilPage } from './pages/ProfilPage';
 import { CreneauxPage } from './pages/CreneauxPage';
 import { SignerPage } from './pages/SignerPage';
+import { QuestionnairesPage } from './pages/QuestionnairesPage';
+import { AttestationsPage } from './pages/AttestationsPage';
+import { FormationsPage } from './pages/FormationsPage';
+import { SessionsPage } from './pages/SessionsPage';
+import { DocumentsPage } from './pages/DocumentsPage';
+import { AdminTenantsPage } from './pages/AdminTenantsPage';
+import { AdminPlansPage } from './pages/AdminPlansPage';
 import { VerificationPage } from './pages/VerificationPage';
 import { AccessibilitePage } from './pages/AccessibilitePage';
-import type { JSX } from 'react';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { auth } = useAuth();
   return auth ? children : <Navigate to="/login" replace />;
+}
+
+/** Restreint une route à certains rôles ; sinon renvoie au tableau de bord. */
+function RoleRoute({ roles, children }: { roles: Claims['role'][]; children: JSX.Element }) {
+  const { claims } = useAuth();
+  if (!claims) return null;
+  return roles.includes(claims.role) ? children : <Navigate to="/app" replace />;
 }
 
 export function App() {
@@ -20,45 +38,39 @@ export function App() {
   return (
     <>
       <a href="#contenu" className="skip-link">
-        {t('common.back')}
+        {t('common.skipToContent')}
       </a>
-      <main id="contenu" className="mx-auto max-w-2xl p-4">
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/accessibilite" element={<AccessibilitePage />} />
-          <Route path="/verification/:token" element={<VerificationPage />} />
-          <Route
-            path="/"
-            element={
-              <RequireAuth>
-                <DashboardPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/creneaux"
-            element={
-              <RequireAuth>
-                <CreneauxPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/creneaux/:id/signer"
-            element={
-              <RequireAuth>
-                <SignerPage />
-              </RequireAuth>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
-      <footer className="mx-auto max-w-2xl border-t border-slate-200 p-4 text-sm">
-        <a href="/accessibilite" className="text-blue-700 underline underline-offset-2">
-          {t('a11y.link')}
-        </a>
-      </footer>
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/accessibilite" element={<AccessibilitePage />} />
+        <Route path="/verification/:token" element={<VerificationPage />} />
+
+        {/* Espace authentifié */}
+        <Route
+          path="/app"
+          element={
+            <RequireAuth>
+              <AppShell />
+            </RequireAuth>
+          }
+        >
+          <Route index element={<DashboardPage />} />
+          <Route path="profil" element={<ProfilPage />} />
+          <Route path="creneaux" element={<RoleRoute roles={['apprenant', 'formateur']}><CreneauxPage /></RoleRoute>} />
+          <Route path="creneaux/:id/signer" element={<RoleRoute roles={['apprenant', 'formateur']}><SignerPage /></RoleRoute>} />
+          <Route path="questionnaires" element={<RoleRoute roles={['apprenant', 'admin_of']}><QuestionnairesPage /></RoleRoute>} />
+          <Route path="attestations" element={<RoleRoute roles={['apprenant']}><AttestationsPage /></RoleRoute>} />
+          <Route path="formations" element={<RoleRoute roles={['admin_of', 'formateur']}><FormationsPage /></RoleRoute>} />
+          <Route path="sessions" element={<RoleRoute roles={['admin_of', 'formateur']}><SessionsPage /></RoleRoute>} />
+          <Route path="documents" element={<RoleRoute roles={['admin_of']}><DocumentsPage /></RoleRoute>} />
+          <Route path="tenants" element={<RoleRoute roles={['super_admin']}><AdminTenantsPage /></RoleRoute>} />
+          <Route path="plans" element={<RoleRoute roles={['super_admin']}><AdminPlansPage /></RoleRoute>} />
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </>
   );
 }

@@ -26,6 +26,75 @@ export interface Creneau {
   monStatut: 'en_attente' | 'signe' | 'refuse' | 'absent';
 }
 
+export interface Profile {
+  id: string;
+  email: string;
+  prenom: string | null;
+  nom: string | null;
+  role: Claims['role'];
+  mfaEnabled: boolean;
+  handicapAdaptations: string | null;
+  createdAt: string;
+}
+
+export interface FormationRow {
+  id: string;
+  intitule: string;
+  dureeHeures: string;
+  tarifCents: number | null;
+  actif: boolean;
+  indicateursQualiopi: string[];
+  _count: { sessions: number };
+}
+
+export interface SessionRow {
+  id: string;
+  intitule: string | null;
+  formation: string;
+  dateDebut: string;
+  dateFin: string;
+  statut: string;
+  lieu: string | null;
+  creneaux: number;
+  inscrits: number;
+}
+
+export interface InscriptionRow {
+  id: string;
+  statut: string;
+  formation: string;
+  session: string | null;
+  dateDebut: string;
+  dateFin: string;
+  certificat: { id: string; statut: string; numero: string } | null;
+}
+
+export interface QuestionnaireMine {
+  id: string;
+  type: string;
+  titre: string;
+  dejaSoumis: boolean;
+  questions: { id: string; libelle: string; type: string; options: unknown; obligatoire: boolean }[];
+}
+
+export interface TenantRow {
+  id: string;
+  slug: string;
+  name: string;
+  status: string;
+  utilisateurs: number;
+  sessions: number;
+  plan: string | null;
+}
+
+export interface PlanRow {
+  id: string;
+  code: string;
+  name: string;
+  priceCents: number;
+  maxUsers: number | null;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -113,6 +182,116 @@ export const api = {
       creneau: { date: string; periode: string };
     }>(`/verification/${token}`, { tenantSlug });
   },
+
+  // --- Profil ---
+  getProfile(auth: AuthState) {
+    return request<Profile>('/profile', { auth });
+  },
+  updateProfile(auth: AuthState, body: { prenom?: string | null; nom?: string | null; handicapAdaptations?: string | null }) {
+    return request<Profile>('/profile', { method: 'PATCH', auth, body });
+  },
+  changePassword(auth: AuthState, currentPassword: string, newPassword: string) {
+    return request<{ changed: boolean }>('/profile/password', { method: 'POST', auth, body: { currentPassword, newPassword } });
+  },
+
+  // --- Catalogue / apprenant ---
+  formations(auth: AuthState) {
+    return request<FormationRow[]>('/formations', { auth });
+  },
+  sessions(auth: AuthState) {
+    return request<SessionRow[]>('/sessions', { auth });
+  },
+  myInscriptions(auth: AuthState) {
+    return request<InscriptionRow[]>('/me/inscriptions', { auth });
+  },
+
+  // --- Questionnaires ---
+  questionnairesMine(auth: AuthState) {
+    return request<QuestionnaireMine[]>('/questionnaires/mine', { auth });
+  },
+  soumettre(auth: AuthState, id: string, reponses: { questionId: string; valeur?: string }[]) {
+    return request<{ soumissionId: string }>(`/questionnaires/${id}/soumettre`, { method: 'POST', auth, body: { reponses } });
+  },
+  questionnairesAdmin(auth: AuthState) {
+    return request<{ id: string; type: string; titre: string; sessionId: string | null }[]>('/questionnaires', { auth });
+  },
+  restitution(auth: AuthState, id: string) {
+    return request<{
+      questionnaire: { titre: string };
+      nbSoumissions: number;
+      nbAttendus: number;
+      tauxCompletude: number;
+      questions: {
+        questionId: string;
+        libelle: string;
+        type: string;
+        nbReponses: number;
+        moyenne?: number;
+        tauxVrai?: number;
+        distribution?: Record<string, number>;
+        verbatims?: string[];
+      }[];
+    }>(`/questionnaires/${id}/restitution`, { auth });
+  },
+
+  // --- Super-admin ---
+  tenants(auth: AuthState) {
+    return request<TenantRow[]>('/admin/tenants', { auth });
+  },
+  onboardTenant(auth: AuthState, body: { slug: string; name: string; adminEmail: string; adminPassword: string; planCode?: string }) {
+    return request<{ tenantId: string; slug: string }>('/admin/tenants', { method: 'POST', auth, body });
+  },
+  setTenantStatus(auth: AuthState, id: string, status: 'active' | 'suspended') {
+    return request<unknown>(`/admin/tenants/${id}/status`, { method: 'PATCH', auth, body: { status } });
+  },
+  plans(auth: AuthState) {
+    return request<PlanRow[]>('/admin/plans', { auth });
+  },
 };
+
+/** Télécharge un fichier protégé (en-têtes auth) et déclenche l'enregistrement navigateur. */
+export async function downloadFile(auth: AuthState, path: string, filename: string): Promise<void> {
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: { 'x-tenant-slug': auth.tenantSlug, Authorization: `Bearer ${auth.token}` },
+  });
+  if (!res.ok) throw new ApiError(`Erreur ${res.status}`, res.status);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** Upload multipart d'un document. */
+export async function uploadDocument(
+  auth: AuthState,
+  file: File,
+  meta: { type: string; scope: string },
+): Promise<{ id: string; nomFichier: string; scanStatus: string }> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('type', meta.type);
+  form.append('scope', meta.scope);
+  const res = await fetch(`${API_URL}/documents`, {
+    method: 'POST',
+    headers: { 'x-tenant-slug': auth.tenantSlug, Authorization: `Bearer ${auth.token}` },
+    body: form,
+  });
+  if (!res.ok) {
+    let message = `Erreur ${res.status}`;
+    try {
+      const d = (await res.json()) as { message?: string };
+      if (d.message) message = d.message;
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(message, res.status);
+  }
+  return (await res.json()) as { id: string; nomFichier: string; scanStatus: string };
+}
 
 export { API_URL };

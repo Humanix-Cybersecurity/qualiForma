@@ -80,14 +80,20 @@ export class ExportsService {
     });
   }
 
-  /** Certificat de réalisation d'une inscription (+ upsert de l'entité CertificatRealisation). */
-  async certificat(inscriptionId: string): Promise<ExportFile> {
+  /**
+   * Certificat de réalisation d'une inscription (+ upsert de CertificatRealisation).
+   * Si `ownerUserId` est fourni, vérifie que l'inscription appartient à cet apprenant.
+   */
+  async certificat(inscriptionId: string, ownerUserId?: string): Promise<ExportFile> {
     return this.tenantPrisma.withTenant(async (tx) => {
       const inscription = await tx.inscription.findFirst({
         where: { id: inscriptionId },
         include: { apprenant: true, session: { include: { formation: true } } },
       });
       if (!inscription) throw new NotFoundException('Inscription introuvable.');
+      if (ownerUserId && inscription.apprenantId !== ownerUserId) {
+        throw new NotFoundException('Inscription introuvable.');
+      }
 
       const tenant = await tx.tenant.findFirst();
       const heures = await this.heuresApprenant(tx, inscription.sessionId, inscription.apprenantId);

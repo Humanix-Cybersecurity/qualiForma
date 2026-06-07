@@ -3,25 +3,34 @@ import { Button as AriaButton, type ButtonProps } from 'react-aria-components';
 
 const VARIANTS = {
   primary:
-    'bg-blue-700 text-white hover:bg-blue-800 disabled:bg-slate-300 disabled:text-slate-500',
+    'bg-brand-600 text-white hover:bg-brand-700 disabled:bg-slate-300 disabled:text-slate-500 shadow-sm',
   secondary:
-    'bg-white text-slate-900 border border-slate-300 hover:bg-slate-50 disabled:opacity-50',
-  danger: 'bg-red-700 text-white hover:bg-red-800 disabled:opacity-50',
+    'bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 disabled:opacity-50',
+  ghost: 'bg-transparent text-slate-700 hover:bg-slate-100 disabled:opacity-50',
+  danger: 'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 shadow-sm',
+} as const;
+
+const SIZES = {
+  sm: 'px-3 py-1.5 text-xs',
+  md: 'px-4 py-2 text-sm',
+  lg: 'px-5 py-2.5 text-base',
 } as const;
 
 export interface UiButtonProps extends ButtonProps {
   variant?: keyof typeof VARIANTS;
+  size?: keyof typeof SIZES;
 }
 
 /** Bouton accessible (React Aria) : focus visible, états gérés au clavier. */
-export function Button({ variant = 'primary', className, ...props }: UiButtonProps) {
+export function Button({ variant = 'primary', size = 'md', className, ...props }: UiButtonProps) {
   return (
     <AriaButton
       {...props}
       className={
-        `inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium ` +
-        `outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 ` +
-        `transition-colors ${VARIANTS[variant]} ${typeof className === 'string' ? className : ''}`
+        `inline-flex items-center justify-center gap-2 rounded-lg font-medium ` +
+        `outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-500 ` +
+        `focus-visible:ring-offset-2 disabled:cursor-not-allowed ` +
+        `${SIZES[size]} ${VARIANTS[variant]} ${typeof className === 'string' ? className : ''}`
       }
     />
   );

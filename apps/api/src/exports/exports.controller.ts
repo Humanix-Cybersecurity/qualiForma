@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { BadRequestException, Controller, Get, Param, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
+import type { AccessClaims } from '@humanix/domain';
 import { Auth } from '../auth/auth.decorator';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { ExportsService, type ExportFile } from './exports.service';
 
 @Controller()
@@ -18,6 +20,17 @@ export class ExportsController {
   @Auth('admin_of')
   async certificat(@Param('id') id: string, @Res() res: Response) {
     send(res, await this.exports.certificat(id));
+  }
+
+  /** Attestation de l'apprenant courant (contrôle de propriété). */
+  @Get('me/certificat/:inscriptionId')
+  @Auth('apprenant')
+  async myCertificat(
+    @Param('inscriptionId') inscriptionId: string,
+    @CurrentUser() user: AccessClaims,
+    @Res() res: Response,
+  ) {
+    send(res, await this.exports.certificat(inscriptionId, user.sub));
   }
 
   /** Décompte de facturation. ?format=pdf|csv|xlsx (défaut pdf). */

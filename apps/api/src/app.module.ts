@@ -12,6 +12,8 @@ import { QuestionnairesModule } from './questionnaires/questionnaires.module';
 import { ExportsModule } from './exports/exports.module';
 import { SuperAdminModule } from './superadmin/superadmin.module';
 import { RgpdModule } from './rgpd/rgpd.module';
+import { ProfileModule } from './profile/profile.module';
+import { CatalogModule } from './catalog/catalog.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -32,6 +34,8 @@ import { HealthController } from './health/health.controller';
     ExportsModule,
     SuperAdminModule,
     RgpdModule,
+    ProfileModule,
+    CatalogModule,
   ],
   controllers: [HealthController],
 })
