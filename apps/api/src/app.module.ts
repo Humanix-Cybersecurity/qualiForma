@@ -7,6 +7,7 @@ import { TenantMiddleware } from './tenant/tenant.middleware';
 import { AuthModule } from './auth/auth.module';
 import { DocumentsModule } from './documents/documents.module';
 import { EmargementModule } from './emargement/emargement.module';
+import { QuestionnairesModule } from './questionnaires/questionnaires.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -22,6 +23,7 @@ import { HealthController } from './health/health.controller';
     AuthModule,
     DocumentsModule,
     EmargementModule,
+    QuestionnairesModule,
   ],
   controllers: [HealthController],
 })

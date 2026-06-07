@@ -11,7 +11,7 @@
 | 4 | Documentaire (upload + ClamAV + chiffrement + ZIP sécurisé) | pipeline upload fail-closed (MinIO+ClamAV, EICAR testé) | ✅ fait |
 | 5 | **Moteur d'émargement & signature** (priorité produit) | `signature-engine` (24 tests), audit chaîné, vérification — PDF à l'étape 8 | ✅ fait |
 | 6 | Sessions/créneaux/planning + mode formateur | émargement API (ouverture/signature/contrôle/co-signature/vérification) — validé e2e | ✅ fait |
-| 7 | Questionnaires & évaluations + restitution | amont/aval/satisfaction, exports agrégés | ⬜ |
+| 7 | Questionnaires & évaluations + restitution | diffusion, soumission validée, restitution agrégée + complétude — validé e2e | ✅ fait |
 | 8 | Exports | émargement PDF, certificat, décompte (PDF/CSV/XLSX) | ⬜ |
 | 9 | Accessibilité + i18n + gate CI a11y | axe/pa11y/Lighthouse, déclaration a11y | ⬜ |
 | 10 | Super-admin SaaS + plans/quotas | onboarding tenants, facturation SaaS | ⬜ |
