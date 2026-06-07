@@ -3,11 +3,11 @@ import { Button as AriaButton, type ButtonProps } from 'react-aria-components';
 
 const VARIANTS = {
   primary:
-    'bg-brand-600 text-white hover:bg-brand-700 disabled:bg-slate-300 disabled:text-slate-500 shadow-sm',
+    'bg-brand-600 text-white shadow-sm hover:bg-brand-700 active:bg-brand-800 disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none',
   secondary:
-    'bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 disabled:opacity-50',
-  ghost: 'bg-transparent text-slate-700 hover:bg-slate-100 disabled:opacity-50',
-  danger: 'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 shadow-sm',
+    'bg-white text-slate-800 border border-slate-300 shadow-sm hover:bg-slate-50 hover:border-slate-400 disabled:opacity-50',
+  ghost: 'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50',
+  danger: 'bg-red-600 text-white shadow-sm hover:bg-red-700 active:bg-red-800 disabled:opacity-50',
 } as const;
 
 const SIZES = {
@@ -27,9 +27,9 @@ export function Button({ variant = 'primary', size = 'md', className, ...props }
     <AriaButton
       {...props}
       className={
-        `inline-flex items-center justify-center gap-2 rounded-lg font-medium ` +
-        `outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-500 ` +
-        `focus-visible:ring-offset-2 disabled:cursor-not-allowed ` +
+        `inline-flex items-center justify-center gap-2 rounded-xl font-medium ` +
+        `outline-none transition-all duration-150 focus-visible:ring-2 focus-visible:ring-brand-500 ` +
+        `focus-visible:ring-offset-2 active:translate-y-px disabled:cursor-not-allowed disabled:active:translate-y-0 ` +
         `${SIZES[size]} ${VARIANTS[variant]} ${typeof className === 'string' ? className : ''}`
       }
     />

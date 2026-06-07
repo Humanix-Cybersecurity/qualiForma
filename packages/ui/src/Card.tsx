@@ -10,7 +10,7 @@ export interface CardProps {
 /** Conteneur visuel standard (bord léger + ombre douce). */
 export function Card({ children, className = '', as: Tag = 'div' }: CardProps) {
   return (
-    <Tag className={`rounded-xl border border-slate-200 bg-white p-5 shadow-card ${className}`}>
+    <Tag className={`rounded-2xl border border-slate-200/80 bg-white p-5 shadow-card ${className}`}>
       {children}
     </Tag>
   );

@@ -6,6 +6,11 @@ import { BrowserRouter } from 'react-router-dom';
 import { createI18n } from '@humanix/i18n';
 import { AuthProvider } from './auth/AuthProvider';
 import { App } from './App';
+// Police Inter auto-hébergée (souveraineté : pas de CDN Google Fonts US).
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/inter/700.css';
 import './index.css';
 
 const i18n = createI18n();

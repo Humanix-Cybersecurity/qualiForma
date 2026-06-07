@@ -34,15 +34,16 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="relative flex min-h-screen flex-col bg-gradient-to-b from-brand-50/60 via-slate-50 to-slate-50">
+      <div aria-hidden="true" className="pointer-events-none absolute -top-32 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-brand-200/30 blur-3xl" />
       <header className="flex h-16 items-center px-4 sm:px-8">
         <Link to="/" className="rounded outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
           <Logo />
         </Link>
       </header>
       <main id="contenu" className="flex flex-1 items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-card">
+        <div className="w-full max-w-md animate-fade-in-up">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-8 shadow-soft">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('login.title')}</h1>
             <p className="mt-1 text-sm text-slate-500">{t('login.subtitle')}</p>
 
