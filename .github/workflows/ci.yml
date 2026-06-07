@@ -92,5 +92,44 @@ jobs:
           output-file: sbom.cyclonedx.json
       - uses: actions/upload-artifact@v4
         with: { name: sbom, path: sbom.cyclonedx.json }
-      # TODO : SAST (semgrep/CodeQL) + scan d'image conteneur (trivy) au packaging.
-      # TODO étape 11 : SAST (semgrep/codeql), gitleaks, syft SBOM, trivy image, vérif en-têtes SPDX
+      # SAST Semgrep (LGPL-2.1) — règles OWASP / sécurité, gate bloquant.
+      - name: Semgrep SAST
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/default
+            p/typescript
+            p/owasp-top-ten
+            p/secrets
+          generateSarif: "1"
+      - name: Upload Semgrep SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with: { sarif_file: semgrep.sarif }
+        continue-on-error: true
+      # Scan vulnérabilités + mauvaises configurations du dépôt (Trivy, Apache-2.0).
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  image-scan:
+    # Scan de l'image conteneur livrée (Trivy) — gate bloquant au packaging (§12).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build de l'image API
+        run: docker build -t humanix-api:ci --target api-runtime -f infra/docker/Dockerfile .
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: humanix-api:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"

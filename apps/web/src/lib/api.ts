@@ -10,7 +10,18 @@ export interface Claims {
 
 export interface AuthState {
   token: string;
+  refreshToken: string;
   tenantSlug: string;
+}
+
+/**
+ * Rafraîchisseur de session enregistré par l'AuthProvider. Sur 401, `request` l'invoque
+ * pour obtenir un nouvel `AuthState` (rotation du refresh token) puis rejoue la requête une fois.
+ * Renvoie `null` si la session ne peut être renouvelée (déconnexion).
+ */
+let authRefresher: ((auth: AuthState) => Promise<AuthState | null>) | null = null;
+export function setAuthRefresher(fn: ((auth: AuthState) => Promise<AuthState | null>) | null): void {
+  authRefresher = fn;
 }
 
 export interface Creneau {
@@ -118,6 +129,8 @@ interface RequestOptions {
   body?: unknown;
   auth?: AuthState;
   tenantSlug?: string;
+  /** Interne : empêche une boucle de rafraîchissement (un seul rejeu après 401). */
+  _retried?: boolean;
 }
 
 async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
@@ -131,6 +144,12 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     headers,
     ...(opts.body !== undefined ? { body: JSON.stringify(opts.body) } : {}),
   });
+
+  // Access token expiré : on tente un rafraîchissement transparent puis on rejoue une fois.
+  if (res.status === 401 && opts.auth && !opts._retried && authRefresher) {
+    const next = await authRefresher(opts.auth);
+    if (next) return request<T>(path, { ...opts, auth: next, _retried: true });
+  }
 
   if (!res.ok) {
     let message = `Erreur ${res.status}`;
@@ -152,6 +171,20 @@ export const api = {
       method: 'POST',
       tenantSlug,
       body: { email, password, ...(totp ? { totp } : {}) },
+    });
+  },
+  refresh(tenantSlug: string, refreshToken: string) {
+    return request<{ accessToken: string; refreshToken: string }>('/auth/refresh', {
+      method: 'POST',
+      tenantSlug,
+      body: { refreshToken },
+    });
+  },
+  logout(auth: AuthState) {
+    return request<void>('/auth/logout', {
+      method: 'POST',
+      tenantSlug: auth.tenantSlug,
+      body: { refreshToken: auth.refreshToken },
     });
   },
   me(auth: AuthState) {

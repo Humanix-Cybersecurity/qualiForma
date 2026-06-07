@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { api, type AuthState, type Claims } from '../lib/api';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { api, setAuthRefresher, type AuthState, type Claims } from '../lib/api';
 import { storage } from '../lib/storage';
 import { flushQueue } from '../lib/offline';
 
@@ -20,6 +20,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return raw ? (JSON.parse(raw) as AuthState) : null;
   });
   const [claims, setClaims] = useState<Claims | null>(null);
+  // Rafraîchissement single-flight : les 401 concurrents partagent la même promesse
+  // (sinon la rotation côté serveur invaliderait les refresh tokens en course).
+  const refreshing = useRef<Promise<AuthState | null> | null>(null);
+
+  // Enregistre le rafraîchisseur transparent pour le client API (rejeu après 401).
+  useEffect(() => {
+    setAuthRefresher(async (current) => {
+      if (!refreshing.current) {
+        refreshing.current = (async () => {
+          try {
+            const tokens = await api.refresh(current.tenantSlug, current.refreshToken);
+            const next: AuthState = {
+              token: tokens.accessToken,
+              refreshToken: tokens.refreshToken,
+              tenantSlug: current.tenantSlug,
+            };
+            storage.set(STORAGE_KEY, JSON.stringify(next));
+            setAuth(next);
+            return next;
+          } catch {
+            storage.remove(STORAGE_KEY);
+            setAuth(null);
+            return null;
+          } finally {
+            refreshing.current = null;
+          }
+        })();
+      }
+      return refreshing.current;
+    });
+    return () => setAuthRefresher(null);
+  }, []);
 
   useEffect(() => {
     if (!auth) {
@@ -53,11 +85,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       claims,
       async login(tenantSlug, email, password, totp) {
         const tokens = await api.login(tenantSlug, email, password, totp);
-        const next: AuthState = { token: tokens.accessToken, tenantSlug };
+        const next: AuthState = {
+          token: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          tenantSlug,
+        };
         storage.set(STORAGE_KEY, JSON.stringify(next));
         setAuth(next);
       },
       logout() {
+        // Révoque le refresh token côté serveur (best-effort) avant de purger la session locale.
+        if (auth) void api.logout(auth).catch(() => undefined);
         storage.remove(STORAGE_KEY);
         setAuth(null);
       },

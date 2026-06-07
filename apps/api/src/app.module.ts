@@ -19,6 +19,8 @@ import { ProfileModule } from './profile/profile.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { ReclamationsModule } from './reclamations/reclamations.module';
 import { JobsModule } from './jobs/jobs.module';
+import { MetricsModule } from './metrics/metrics.module';
+import { QuotasModule } from './quotas/quotas.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -46,15 +48,17 @@ import { HealthController } from './health/health.controller';
     CatalogModule,
     ReclamationsModule,
     JobsModule,
+    MetricsModule,
+    QuotasModule,
   ],
   controllers: [HealthController],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    // Le contexte tenant est requis partout SAUF la sonde de santé.
+    // Le contexte tenant est requis partout SAUF la sonde de santé et l'exposition métriques.
     consumer
       .apply(TenantMiddleware)
-      .exclude('health')
+      .exclude('health', 'metrics')
       .forRoutes('*');
   }
 }

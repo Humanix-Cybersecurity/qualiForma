@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Analyse hebdomadaire (lundi 04:00 UTC) pour capter les nouvelles règles.
+    - cron: "0 4 * * 1"
+
+# Permissions minimales : écriture des alertes de code-scanning uniquement.
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyse CodeQL
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialiser CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # Requêtes étendues sécurité + qualité.
+          queries: security-and-quality
+      - name: Analyser
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"

@@ -6,6 +6,7 @@ import type { AccessClaims } from '@humanix/domain';
 import { AuditService } from '../audit/audit.service';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { TsaService } from '../signature/tsa.service';
+import { MetricsService } from '../metrics/metrics.service';
 
 /**
  * Scellement CONSOLIDÉ d'un créneau (séquence/demi-journée).
@@ -21,6 +22,7 @@ export class ScellementService {
     private readonly tenantPrisma: TenantPrismaService,
     private readonly tsa: TsaService,
     private readonly audit: AuditService,
+    private readonly metrics: MetricsService,
   ) {}
 
   async sceller(creneauId: string, user: AccessClaims) {
@@ -99,6 +101,8 @@ export class ScellementService {
         actorUserId: user.sub,
         payload: { consolidatedSha256, nbSignatures: emargements.length },
       });
+
+      this.metrics.scellements.inc({ niveau, horodatage: stamp.type });
 
       return {
         id: scellement.id,

@@ -83,6 +83,9 @@ const envSchema = z.object({
   SMS_SENDER: z.string().default('Humanix'),
   OCTOPUSH_API_LOGIN: z.string().optional(),
   OCTOPUSH_API_KEY: z.string().optional(),
+
+  // --- Observabilité : jeton facultatif protégeant /metrics (sinon réseau privé only) ---
+  METRICS_TOKEN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

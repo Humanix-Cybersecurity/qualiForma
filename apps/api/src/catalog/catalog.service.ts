@@ -3,6 +3,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import type { AccessClaims } from '@humanix/domain';
 import { requireTenantContext } from '../tenant/tenant-context';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
+import { QuotasService } from '../quotas/quotas.service';
 
 export interface CreateFormationInput {
   intitule: string;
@@ -31,7 +32,10 @@ export interface CreneauInput {
 
 @Injectable()
 export class CatalogService {
-  constructor(private readonly tenantPrisma: TenantPrismaService) {}
+  constructor(
+    private readonly tenantPrisma: TenantPrismaService,
+    private readonly quotas: QuotasService,
+  ) {}
 
   // --- Écriture (admin OF) ---
 
@@ -79,6 +83,7 @@ export class CatalogService {
       const { tenantId } = requireTenantContext();
       const formation = await tx.formation.findFirst({ where: { id: input.formationId } });
       if (!formation) throw new NotFoundException('Formation introuvable.');
+      await this.quotas.assertCanCreateSession(tx, tenantId);
       return tx.session.create({
         data: {
           tenantId,

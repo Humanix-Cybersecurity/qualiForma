@@ -18,6 +18,7 @@ import {
 import type { AccessClaims } from '@humanix/domain';
 import { loadEnv } from '../config/env';
 import { TenantPrismaService, type TenantClient } from '../prisma/tenant-prisma.service';
+import { MetricsService } from '../metrics/metrics.service';
 
 export interface SignInput {
   methode: 'code' | 'qr' | 'manuscrite' | 'lien';
@@ -35,7 +36,10 @@ export class EmargementService {
   private readonly engine: SignatureEngine;
   private readonly env = loadEnv();
 
-  constructor(private readonly tenantPrisma: TenantPrismaService) {
+  constructor(
+    private readonly tenantPrisma: TenantPrismaService,
+    private readonly metrics: MetricsService,
+  ) {
     // Signature INDIVIDUELLE : horodatage serveur faisant foi (pas de jeton qualifié par signature,
     // optimisation coût). L'horodatage QUALIFIÉ est appliqué au scellement consolidé du créneau.
     this.engine = new SignatureEngine();
@@ -220,6 +224,7 @@ export class EmargementService {
         },
       });
 
+      this.metrics.emargementsSignes.inc({ methode: input.methode });
       return this.toEmargementResponse(emargement, proof.verificationToken);
     });
   }
