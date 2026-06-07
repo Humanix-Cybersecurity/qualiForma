@@ -392,6 +392,19 @@ export const api = {
   anonymiserUser(auth: AuthState, userId: string) {
     return request<unknown>(`/rgpd/users/${userId}/anonymiser`, { method: 'POST', auth });
   },
+  updateUser(
+    auth: AuthState,
+    id: string,
+    body: Partial<{ prenom: string | null; nom: string | null; role: 'apprenant' | 'formateur' | 'referent_handicap'; isActive: boolean }>,
+  ) {
+    return request<UserRow>(`/users/${id}`, { method: 'PATCH', auth, body });
+  },
+  deleteUser(auth: AuthState, id: string) {
+    return request<{ id: string; deleted: boolean }>(`/users/${id}`, { method: 'DELETE', auth });
+  },
+  deleteDocument(auth: AuthState, id: string) {
+    return request<{ id: string; deleted: boolean }>(`/documents/${id}`, { method: 'DELETE', auth });
+  },
   completude(auth: AuthState, sessionId: string) {
     return request<SessionCompletude>(`/sessions/${sessionId}/completude`, { auth });
   },
@@ -502,6 +515,19 @@ export async function downloadFile(auth: AuthState, path: string, filename: stri
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+/** Récupère un fichier protégé et l'ouvre dans un nouvel onglet (visualisation inline, ex. PDF). */
+export async function viewFile(auth: AuthState, path: string): Promise<void> {
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: { 'x-tenant-slug': auth.tenantSlug, Authorization: `Bearer ${auth.token}` },
+  });
+  if (!res.ok) throw new ApiError(`Erreur ${res.status}`, res.status);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank', 'noopener');
+  // Libère l'URL après ouverture (laisse le temps au nouvel onglet de charger).
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /** Upload multipart d'un document. */

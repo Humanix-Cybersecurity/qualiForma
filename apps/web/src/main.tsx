@@ -9,6 +9,18 @@ import { App } from './App';
 import './index.css';
 
 const i18n = createI18n();
+
+// PWA : recharge automatiquement quand un nouveau Service Worker prend le contrôle,
+// pour éviter qu'un onglet ne serve une version applicative obsolète (cache Workbox).
+if ('serviceWorker' in navigator) {
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return;
+    reloading = true;
+    window.location.reload();
+  });
+}
+
 const root = document.getElementById('root');
 if (!root) throw new Error('Élément #root introuvable.');
 

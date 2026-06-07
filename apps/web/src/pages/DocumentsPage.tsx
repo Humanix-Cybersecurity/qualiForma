@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, UploadCloud } from 'lucide-react';
+import { Download, Eye, Trash2, UploadCloud } from 'lucide-react';
 import { Alert, Button, Card, Spinner } from '@humanix/ui';
 import { useAuth } from '../auth/AuthProvider';
-import { api, downloadFile, uploadDocument, type DocumentRow } from '../lib/api';
+import { api, downloadFile, uploadDocument, viewFile, type DocumentRow } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 
 const SELECT_CLASS =
@@ -103,10 +103,22 @@ export function DocumentsPage() {
                   <p className="font-medium text-slate-900">{d.nomFichier}</p>
                   <p className="text-sm text-slate-500">{d.type} · {d.scope} · {(d.tailleOctets / 1024).toFixed(0)} Ko · {d.createdAt.slice(0, 10)}</p>
                 </div>
-                <Button size="sm" variant="secondary" onPress={() => auth && downloadFile(auth, `/documents/${d.id}/download`, d.nomFichier)}>
-                  <Download aria-hidden="true" className="h-4 w-4" />
-                  {t('common.download')}
-                </Button>
+                <div className="flex items-center gap-2">
+                  {d.mimeType === 'application/pdf' || d.mimeType.startsWith('text/') ? (
+                    <Button size="sm" variant="ghost" onPress={() => auth && viewFile(auth, `/documents/${d.id}/download?disposition=inline`)}>
+                      <Eye aria-hidden="true" className="h-4 w-4" />
+                      {t('documents.view')}
+                    </Button>
+                  ) : null}
+                  <Button size="sm" variant="secondary" onPress={() => auth && downloadFile(auth, `/documents/${d.id}/download`, d.nomFichier)}>
+                    <Download aria-hidden="true" className="h-4 w-4" />
+                    {t('common.download')}
+                  </Button>
+                  <Button size="sm" variant="ghost" onPress={async () => { if (auth && window.confirm(t('documents.deleteConfirm'))) { await api.deleteDocument(auth, d.id); reload(); } }}>
+                    <Trash2 aria-hidden="true" className="h-4 w-4" />
+                    {t('common.delete')}
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}

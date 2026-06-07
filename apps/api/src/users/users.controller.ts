@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { z } from 'zod';
 import type { AccessClaims } from '@humanix/domain';
 import { Auth } from '../auth/auth.decorator';
@@ -15,6 +15,13 @@ const createUserSchema = z.object({
   nom: z.string().max(120).optional(),
   role: roleSchema,
   password: z.string().min(12).max(200).optional(),
+});
+
+const updateUserSchema = z.object({
+  prenom: z.string().max(120).optional(),
+  nom: z.string().max(120).optional(),
+  role: roleSchema.optional(),
+  isActive: z.boolean().optional(),
 });
 
 @Controller('users')
@@ -35,5 +42,21 @@ export class UsersController {
   list(@Query('role') role?: string) {
     const parsed = roleSchema.safeParse(role);
     return this.users.list(parsed.success ? parsed.data : undefined);
+  }
+
+  @Patch(':id')
+  @Auth('admin_of')
+  update(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updateUserSchema)) body: z.infer<typeof updateUserSchema>,
+    @CurrentUser() user: AccessClaims,
+  ) {
+    return this.users.update(id, user, body);
+  }
+
+  @Delete(':id')
+  @Auth('admin_of')
+  remove(@Param('id') id: string, @CurrentUser() user: AccessClaims) {
+    return this.users.remove(id, user);
   }
 }

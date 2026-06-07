@@ -20,6 +20,7 @@ export const fr = {
     open: 'Ouvrir',
     close: 'Fermer',
     delete: 'Supprimer',
+    edit: 'Modifier',
     skipToContent: 'Aller au contenu',
   },
   roles: {
@@ -280,6 +281,10 @@ export const fr = {
     tempPasswordHint: 'À transmettre de façon sécurisée. L’utilisateur le changera après connexion.',
     anonymise: 'Anonymiser (RGPD)',
     anonymiseConfirm: 'Anonymiser ce compte ? L’identité sera effacée ; les preuves restent conservées sous legal hold.',
+    inactive: 'désactivé',
+    activate: 'Réactiver',
+    deactivate: 'Désactiver',
+    deleteConfirm: 'Supprimer définitivement ce compte ? (impossible s’il a des inscriptions/émargements)',
   },
   completude: {
     verifier: 'Vérifier la clôture',
@@ -301,6 +306,8 @@ export const fr = {
     hint: 'PDF, TXT ou ZIP. Analyse antivirus automatique.',
     listTitle: 'Documents déposés',
     none: 'Aucun document.',
+    view: 'Visualiser',
+    deleteConfirm: 'Supprimer ce document ?',
   },
   admin: {
     tenantsTitle: 'Organismes (tenants)',

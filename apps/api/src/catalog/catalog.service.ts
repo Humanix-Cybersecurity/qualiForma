@@ -31,6 +31,31 @@ export interface CreneauInput {
   lieu?: string;
 }
 
+/** "HH:MM" → minutes ; lève si format invalide. */
+function hhmmToMinutes(v: string): number {
+  const m = /^([0-1]\d|2[0-3]):([0-5]\d)$/.exec(v);
+  if (!m) throw new BadRequestException(`Horaire invalide : "${v}".`);
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
+/**
+ * Valide la cohérence horaire d'un créneau : début strictement avant fin, et accord
+ * période/horaires (matin avant 13:00, après-midi à partir de 12:00).
+ */
+function validateCreneauHoraire(periode: 'matin' | 'apres_midi', heureDebut: string, heureFin: string): void {
+  const debut = hhmmToMinutes(heureDebut);
+  const fin = hhmmToMinutes(heureFin);
+  if (debut >= fin) {
+    throw new BadRequestException('L’heure de début doit précéder l’heure de fin.');
+  }
+  if (periode === 'matin' && fin > 13 * 60) {
+    throw new BadRequestException('Un créneau du matin doit se terminer au plus tard à 13:00.');
+  }
+  if (periode === 'apres_midi' && debut < 12 * 60) {
+    throw new BadRequestException('Un créneau d’après-midi doit commencer à partir de 12:00.');
+  }
+}
+
 @Injectable()
 export class CatalogService {
   constructor(
@@ -110,6 +135,7 @@ export class CatalogService {
       let ordre = await tx.creneau.count({ where: { sessionId } });
       const created = [];
       for (const c of creneaux) {
+        validateCreneauHoraire(c.periode, c.heureDebut, c.heureFin);
         created.push(
           await tx.creneau.create({
             data: {

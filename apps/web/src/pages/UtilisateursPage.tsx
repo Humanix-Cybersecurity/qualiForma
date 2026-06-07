@@ -86,34 +86,91 @@ export function UtilisateursPage() {
       ) : (
         <ul className="flex flex-col gap-2">
           {rows.map((u) => (
-            <Card key={u.id} as="li">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-medium text-slate-900">
-                    {[u.prenom, u.nom].filter(Boolean).join(' ') || u.email}
-                  </p>
-                  <p className="text-sm text-slate-500">{u.email}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge tone="brand">{t(`roles.${u.role}`)}</Badge>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onPress={async () => {
-                      if (!auth) return;
-                      if (!window.confirm(t('users.anonymiseConfirm'))) return;
-                      await api.anonymiserUser(auth, u.id);
-                      reload();
-                    }}
-                  >
-                    {t('users.anonymise')}
-                  </Button>
-                </div>
-              </div>
-            </Card>
+            <UserItem key={u.id} user={u} onChanged={reload} />
           ))}
         </ul>
       )}
     </>
+  );
+}
+
+/** Ligne utilisateur : affichage, édition (identité/rôle/activation), désactivation, anonymisation, suppression. */
+function UserItem({ user, onChanged }: { user: UserRow; onChanged: () => void }) {
+  const { t } = useTranslation();
+  const { auth } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const [prenom, setPrenom] = useState(user.prenom ?? '');
+  const [nom, setNom] = useState(user.nom ?? '');
+  const [role, setRole] = useState<(typeof ROLES)[number]>(user.role);
+  const [error, setError] = useState<string | null>(null);
+
+  async function act(fn: () => Promise<unknown>) {
+    if (!auth) return;
+    setError(null);
+    try {
+      await fn();
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.error'));
+    }
+  }
+
+  if (editing) {
+    return (
+      <Card as="li">
+        {error ? <div className="mb-2"><Alert tone="error">{error}</Alert></div> : null}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void act(() => api.updateUser(auth!, user.id, { prenom, nom, role }).then(() => setEditing(false)));
+          }}
+          className="flex flex-col gap-3"
+        >
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <TextField label={t('users.prenom')} value={prenom} onChange={setPrenom} />
+            <TextField label={t('users.nom')} value={nom} onChange={setNom} />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-slate-800" htmlFor={`role-${user.id}`}>{t('users.role')}</label>
+            <select id={`role-${user.id}`} value={role} onChange={(e) => setRole(e.target.value as (typeof ROLES)[number])}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+              {ROLES.map((r) => <option key={r} value={r}>{t(`roles.${r}`)}</option>)}
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" size="sm">{t('common.save')}</Button>
+            <Button type="button" size="sm" variant="ghost" onPress={() => setEditing(false)}>{t('common.cancel')}</Button>
+          </div>
+        </form>
+      </Card>
+    );
+  }
+
+  return (
+    <Card as="li">
+      {error ? <div className="mb-2"><Alert tone="error">{error}</Alert></div> : null}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-medium text-slate-900">
+            {[user.prenom, user.nom].filter(Boolean).join(' ') || user.email}
+            {user.isActive === false ? <span className="ml-2 text-xs text-amber-700">({t('users.inactive')})</span> : null}
+          </p>
+          <p className="text-sm text-slate-500">{user.email}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone="brand">{t(`roles.${user.role}`)}</Badge>
+          <Button size="sm" variant="secondary" onPress={() => setEditing(true)}>{t('common.edit')}</Button>
+          <Button size="sm" variant="ghost" onPress={() => void act(() => api.updateUser(auth!, user.id, { isActive: user.isActive === false }))}>
+            {user.isActive === false ? t('users.activate') : t('users.deactivate')}
+          </Button>
+          <Button size="sm" variant="ghost" onPress={() => { if (window.confirm(t('users.anonymiseConfirm'))) void act(() => api.anonymiserUser(auth!, user.id)); }}>
+            {t('users.anonymise')}
+          </Button>
+          <Button size="sm" variant="danger" onPress={() => { if (window.confirm(t('users.deleteConfirm'))) void act(() => api.deleteUser(auth!, user.id)); }}>
+            {t('common.delete')}
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 }

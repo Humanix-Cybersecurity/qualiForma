@@ -3,6 +3,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -81,13 +82,28 @@ export class DocumentsController {
     });
   }
 
-  /** Téléchargement d'un document sain (flux depuis le stockage objet). */
+  /**
+   * Récupération d'un document sain. `?disposition=inline` pour la visualisation dans le
+   * navigateur (PDF), sinon téléchargement.
+   */
   @Get(':id/download')
   @Auth('admin_of', 'formateur')
-  async download(@Param('id') id: string, @Res() res: Response): Promise<void> {
+  async download(
+    @Param('id') id: string,
+    @Res() res: Response,
+    @Query('disposition') disposition?: string,
+  ): Promise<void> {
     const { stream, nomFichier, mimeType } = await this.documents.getForDownload(id);
+    const dispo = disposition === 'inline' ? 'inline' : 'attachment';
     res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(nomFichier)}"`);
+    res.setHeader('Content-Disposition', `${dispo}; filename="${encodeURIComponent(nomFichier)}"`);
     stream.pipe(res);
+  }
+
+  /** Suppression d'un document (admin OF). */
+  @Delete(':id')
+  @Auth('admin_of')
+  remove(@Param('id') id: string, @CurrentUser() user: AccessClaims) {
+    return this.documents.remove(id, user.sub);
   }
 }

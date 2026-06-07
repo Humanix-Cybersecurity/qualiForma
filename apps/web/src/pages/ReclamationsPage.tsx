@@ -17,6 +17,7 @@ export function ReclamationsPage() {
   const [description, setDescription] = useState('');
   const [actions, setActions] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // La liste/traitement est réservée à l'admin ; les autres rôles ne font que déposer.
   const reload = useCallback(() => {
@@ -41,14 +42,24 @@ export function ReclamationsPage() {
   }
   async function changeStatut(id: string, statut: string) {
     if (!auth) return;
-    await api.setReclamationStatut(auth, id, statut);
-    reload();
+    setError(null);
+    try {
+      await api.setReclamationStatut(auth, id, statut);
+      reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.error'));
+    }
   }
   async function addAction(id: string) {
     if (!auth || !actions[id]) return;
-    await api.addReclamationAction(auth, id, actions[id]);
-    setActions((a) => ({ ...a, [id]: '' }));
-    reload();
+    setError(null);
+    try {
+      await api.addReclamationAction(auth, id, actions[id] ?? '');
+      setActions((a) => ({ ...a, [id]: '' }));
+      reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.error'));
+    }
   }
 
   return (
@@ -63,6 +74,8 @@ export function ReclamationsPage() {
           <Button type="submit" className="self-start">{t('common.submit')}</Button>
         </form>
       </Card>
+
+      {error ? <div className="mb-4"><Alert tone="error">{error}</Alert></div> : null}
 
       {!isAdmin ? null : rows === null ? (
         <Spinner label={t('common.loading')} />

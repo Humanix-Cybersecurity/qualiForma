@@ -23,6 +23,7 @@ export const en: typeof fr = {
     open: 'Open',
     close: 'Close',
     delete: 'Delete',
+    edit: 'Edit',
     skipToContent: 'Skip to content',
   },
   roles: {
@@ -283,6 +284,10 @@ export const en: typeof fr = {
     tempPasswordHint: 'Share it securely. The user will change it after signing in.',
     anonymise: 'Anonymise (GDPR)',
     anonymiseConfirm: 'Anonymise this account? Identity will be erased; proofs are kept under legal hold.',
+    inactive: 'inactive',
+    activate: 'Activate',
+    deactivate: 'Deactivate',
+    deleteConfirm: 'Permanently delete this account? (not possible if it has enrollments/attendance)',
   },
   completude: {
     verifier: 'Check before closing',
@@ -304,6 +309,8 @@ export const en: typeof fr = {
     hint: 'PDF, TXT or ZIP. Automatic antivirus scan.',
     listTitle: 'Uploaded documents',
     none: 'No document.',
+    view: 'View',
+    deleteConfirm: 'Delete this document?',
   },
   admin: {
     tenantsTitle: 'Organisations (tenants)',

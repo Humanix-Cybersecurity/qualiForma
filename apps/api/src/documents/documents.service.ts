@@ -89,6 +89,23 @@ export class DocumentsService {
     });
   }
 
+  /** Supprime un document (objet + métadonnées). Tracé en audit. */
+  async remove(id: string, actorUserId?: string) {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const doc = await tx.document.findFirst({ where: { id }, select: { id: true, objectKey: true } });
+      if (!doc) throw new BadRequestException('Document introuvable.');
+      await this.storage.delete(doc.objectKey).catch(() => undefined);
+      await tx.document.delete({ where: { id } });
+      await this.audit.record(tx, {
+        action: 'document.delete',
+        entity: 'document',
+        entityId: id,
+        ...(actorUserId ? { actorUserId } : {}),
+      });
+      return { id, deleted: true };
+    });
+  }
+
   async upload(input: UploadInput) {
     const { tenantId } = requireTenantContext();
 

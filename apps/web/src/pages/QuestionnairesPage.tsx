@@ -195,16 +195,18 @@ function AdminQuestionnaires() {
     setResti(await api.restitution(auth, id));
   }
 
-  return (
-    <>
-      <PageHeader title={t('questionnaires.title')} />
-      <NewQuestionnaire onCreated={reload} />
-      {resti ? (
-        <Card className="mb-6">
+  // Vue dédiée : la restitution REMPLACE la liste (évite le double volet source de confusion).
+  if (resti) {
+    return (
+      <>
+        <PageHeader
+          title={resti.questionnaire.titre}
+          actions={<Button variant="ghost" onPress={() => setResti(null)}>{t('common.back')}</Button>}
+        />
+        <Card>
           <CardHeader
-            title={resti.questionnaire.titre}
+            title={t('questionnaires.restitution')}
             subtitle={`${t('questionnaires.completionRate')} : ${Math.round(resti.tauxCompletude * 100)}% (${resti.nbSoumissions}/${resti.nbAttendus})`}
-            action={<Button variant="ghost" size="sm" onPress={() => setResti(null)}>{t('common.close')}</Button>}
           />
           <ul className="flex flex-col gap-3">
             {resti.questions.map((q) => (
@@ -220,7 +222,14 @@ function AdminQuestionnaires() {
             ))}
           </ul>
         </Card>
-      ) : null}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <PageHeader title={t('questionnaires.title')} />
+      <NewQuestionnaire onCreated={reload} />
       {list === null ? (
         <Spinner label={t('common.loading')} />
       ) : list.length === 0 ? (

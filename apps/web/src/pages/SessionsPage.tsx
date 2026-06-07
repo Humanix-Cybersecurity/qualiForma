@@ -237,7 +237,13 @@ function ManageSession({ session, onChanged }: { session: SessionRow; onChanged:
           <TextField label={t('sessions.date')} type="date" value={date} onChange={setDate} isRequired />
           <div className="flex flex-col gap-1">
             <label htmlFor={`periode-${session.id}`} className="text-sm font-medium text-slate-800">{t('sessions.periode')}</label>
-            <select id={`periode-${session.id}`} value={periode} onChange={(e) => setPeriode(e.target.value as 'matin' | 'apres_midi')}
+            <select id={`periode-${session.id}`} value={periode} onChange={(e) => {
+                const p = e.target.value as 'matin' | 'apres_midi';
+                setPeriode(p);
+                // Pré-remplit des horaires cohérents avec la période choisie.
+                if (p === 'matin') { setHeureDebut('09:00'); setHeureFin('12:30'); }
+                else { setHeureDebut('14:00'); setHeureFin('17:30'); }
+              }}
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
               <option value="matin">{t('sessions.matin')}</option>
               <option value="apres_midi">{t('sessions.apresMidi')}</option>
