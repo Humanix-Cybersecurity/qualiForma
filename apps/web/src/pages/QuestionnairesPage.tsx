@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Badge, Button, Card, CardHeader, Spinner } from '@humanix/ui';
 import { useAuth } from '../auth/AuthProvider';
-import { api, type QuestionnaireMine } from '../lib/api';
+import { api, downloadFile, type QuestionnaireMine } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 
 export function QuestionnairesPage() {
@@ -227,7 +227,10 @@ function AdminQuestionnaires() {
             <Card key={q.id} as="li">
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium text-slate-900">{q.titre}</p>
-                <Button size="sm" variant="secondary" onPress={() => openResti(q.id)}>{t('questionnaires.restitution')}</Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="secondary" onPress={() => openResti(q.id)}>{t('questionnaires.restitution')}</Button>
+                  <Button size="sm" variant="ghost" onPress={() => auth && downloadFile(auth, `/questionnaires/${q.id}/restitution.csv`, `restitution-${q.id}.csv`)}>CSV</Button>
+                </div>
               </div>
             </Card>
           ))}

@@ -10,7 +10,7 @@ import { navForRole } from '../nav';
 import { Logo } from './Logo';
 
 export function AppShell() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { claims, auth, logout } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
@@ -117,6 +117,19 @@ export function AppShell() {
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium text-slate-900">{displayName}</p>
               <Badge tone="brand">{t(`roles.${claims.role}`)}</Badge>
+            </div>
+            <div className="flex items-center rounded-lg border border-slate-200 text-xs" role="group" aria-label="Langue">
+              {(['fr', 'en'] as const).map((lng) => (
+                <button
+                  key={lng}
+                  type="button"
+                  onClick={() => i18n.changeLanguage(lng)}
+                  aria-pressed={i18n.language.startsWith(lng)}
+                  className={`px-2 py-1 font-medium uppercase ${i18n.language.startsWith(lng) ? 'bg-brand-50 text-brand-700' : 'text-slate-500 hover:bg-slate-100'}`}
+                >
+                  {lng}
+                </button>
+              ))}
             </div>
             <span
               aria-hidden="true"

@@ -17,6 +17,7 @@ import { SuperAdminModule } from './superadmin/superadmin.module';
 import { RgpdModule } from './rgpd/rgpd.module';
 import { ProfileModule } from './profile/profile.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { ReclamationsModule } from './reclamations/reclamations.module';
 import { JobsModule } from './jobs/jobs.module';
 import { HealthController } from './health/health.controller';
 
@@ -43,6 +44,7 @@ import { HealthController } from './health/health.controller';
     RgpdModule,
     ProfileModule,
     CatalogModule,
+    ReclamationsModule,
     JobsModule,
   ],
   controllers: [HealthController],

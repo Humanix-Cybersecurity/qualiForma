@@ -18,6 +18,7 @@ import { SessionsPage } from './pages/SessionsPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { AdminTenantsPage } from './pages/AdminTenantsPage';
 import { AdminPlansPage } from './pages/AdminPlansPage';
+import { ReclamationsPage } from './pages/ReclamationsPage';
 import { VerificationPage } from './pages/VerificationPage';
 import { AccessibilitePage } from './pages/AccessibilitePage';
 
@@ -65,6 +66,7 @@ export function App() {
           <Route path="formations" element={<RoleRoute roles={['admin_of', 'formateur']}><FormationsPage /></RoleRoute>} />
           <Route path="sessions" element={<RoleRoute roles={['admin_of', 'formateur']}><SessionsPage /></RoleRoute>} />
           <Route path="documents" element={<RoleRoute roles={['admin_of']}><DocumentsPage /></RoleRoute>} />
+          <Route path="reclamations" element={<RoleRoute roles={['admin_of']}><ReclamationsPage /></RoleRoute>} />
           <Route path="tenants" element={<RoleRoute roles={['super_admin']}><AdminTenantsPage /></RoleRoute>} />
           <Route path="plans" element={<RoleRoute roles={['super_admin']}><AdminPlansPage /></RoleRoute>} />
         </Route>

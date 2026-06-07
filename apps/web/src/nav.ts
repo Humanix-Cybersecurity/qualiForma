@@ -8,6 +8,7 @@ import {
   CreditCard,
   FolderClosed,
   LayoutDashboard,
+  MessageSquareWarning,
   type LucideIcon,
 } from 'lucide-react';
 import type { Claims } from './lib/api';
@@ -44,6 +45,7 @@ export function navForRole(role: Claims['role']): NavItem[] {
         { to: '/app/sessions', labelKey: 'sessions', icon: CalendarCheck },
         { to: '/app/questionnaires', labelKey: 'questionnaires', icon: ClipboardList },
         { to: '/app/documents', labelKey: 'documents', icon: FolderClosed },
+        { to: '/app/reclamations', labelKey: 'reclamations', icon: MessageSquareWarning },
       ];
     case 'super_admin':
       return [

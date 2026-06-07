@@ -210,6 +210,29 @@ export class QuestionnairesService {
       return { questionnaire: { id: q.id, titre: q.titre, type: q.type }, ...restitution };
     });
   }
+
+  /** Export CSV de la restitution (satisfaction/évaluation), pour l'audit Qualiopi. */
+  async restitutionCsv(questionnaireId: string): Promise<{ buffer: Buffer; filename: string }> {
+    const r = await this.restitution(questionnaireId);
+    const cell = (v: string) => (/[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    const lignes = [
+      `Questionnaire;${cell(r.questionnaire.titre)} (${r.questionnaire.type})`,
+      `Soumissions;${r.nbSoumissions}/${r.nbAttendus} (${Math.round(r.tauxCompletude * 100)}%)`,
+      '',
+      'Question;Réponses;Moyenne;Taux oui;Distribution',
+      ...r.questions.map((q) =>
+        [
+          cell(q.libelle),
+          q.nbReponses,
+          q.moyenne ?? '',
+          q.tauxVrai !== undefined ? Math.round(q.tauxVrai * 100) + '%' : '',
+          q.distribution ? cell(Object.entries(q.distribution).map(([k, v]) => `${k}:${v}`).join(' ')) : '',
+        ].join(';'),
+      ),
+    ];
+    // BOM UTF-8 pour Excel.
+    return { buffer: Buffer.from('﻿' + lignes.join('\r\n'), 'utf8'), filename: `restitution-${questionnaireId}.csv` };
+  }
 }
 
 function toDef(question: {

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { z } from 'zod';
 import type { AccessClaims } from '@humanix/domain';
 import { Auth } from '../auth/auth.decorator';
@@ -81,6 +82,18 @@ export class QuestionnairesController {
   @Auth('admin_of')
   restitution(@Param('id') id: string) {
     return this.service.restitution(id);
+  }
+
+  @Get(':id/restitution.csv')
+  @Auth('admin_of')
+  async restitutionCsv(@Param('id') id: string, @Res() res: Response) {
+    const { buffer, filename } = await this.service.restitutionCsv(id);
+    res
+      .set({
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      })
+      .send(buffer);
   }
 
   @Post(':id/soumettre')

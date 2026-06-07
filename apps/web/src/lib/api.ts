@@ -95,6 +95,15 @@ export interface PlanRow {
   maxUsers: number | null;
 }
 
+export interface ReclamationRow {
+  id: string;
+  objet: string;
+  description: string;
+  statut: string;
+  createdAt: string;
+  actions: { id: string; description: string }[];
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -284,6 +293,20 @@ export const api = {
   },
   plans(auth: AuthState) {
     return request<PlanRow[]>('/admin/plans', { auth });
+  },
+
+  // --- Réclamations / amélioration continue ---
+  reclamations(auth: AuthState) {
+    return request<ReclamationRow[]>('/reclamations', { auth });
+  },
+  createReclamation(auth: AuthState, body: { objet: string; description: string }) {
+    return request<{ id: string }>('/reclamations', { method: 'POST', auth, body });
+  },
+  setReclamationStatut(auth: AuthState, id: string, statut: string) {
+    return request<unknown>(`/reclamations/${id}/statut`, { method: 'PATCH', auth, body: { statut } });
+  },
+  addReclamationAction(auth: AuthState, id: string, description: string) {
+    return request<{ id: string }>(`/reclamations/${id}/actions`, { method: 'POST', auth, body: { description } });
   },
 };
 
