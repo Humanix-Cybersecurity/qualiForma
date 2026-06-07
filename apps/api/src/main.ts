@@ -14,6 +14,11 @@ async function bootstrap(): Promise<void> {
   app.useLogger(app.get(Logger));
   app.use(helmet()); // CSP/HSTS/headers de sécurité (durcis à l'étape 11)
   app.set('trust proxy', 1); // req.ip fiable derrière un reverse-proxy
+  app.enableCors({
+    origin: env.CORS_ORIGINS,
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-slug'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  });
   app.enableShutdownHooks();
 
   await app.listen(env.API_PORT);

@@ -5,6 +5,11 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_PORT: z.coerce.number().int().positive().default(3000),
   PUBLIC_BASE_URL: z.string().url().default('http://localhost:3000'),
+  // Origines autorisées (CORS) pour le front, séparées par des virgules.
+  CORS_ORIGINS: z
+    .string()
+    .default('http://localhost:5173,http://localhost:4173')
+    .transform((v) => v.split(',').map((s) => s.trim()).filter(Boolean)),
 
   DATABASE_URL: z.string().min(1),
 

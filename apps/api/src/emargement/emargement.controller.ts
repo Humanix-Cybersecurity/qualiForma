@@ -47,6 +47,13 @@ export class EmargementController {
     return this.emargement.signer(id, user, body, reqMeta(req));
   }
 
+  /** Créneaux de l'utilisateur courant (liste pour les écrans apprenant/formateur). */
+  @Get('me/creneaux')
+  @Auth('apprenant', 'formateur')
+  mesCreneaux(@CurrentUser() user: AccessClaims) {
+    return this.emargement.mesCreneaux(user);
+  }
+
   /** Contrôle formateur : état des signatures du créneau + complétude. */
   @Get('creneaux/:id/emargement')
   @Auth('formateur', 'admin_of')

@@ -13,7 +13,7 @@
 | 6 | Sessions/créneaux/planning + mode formateur | émargement API (ouverture/signature/contrôle/co-signature/vérification) — validé e2e | ✅ fait |
 | 7 | Questionnaires & évaluations + restitution | diffusion, soumission validée, restitution agrégée + complétude — validé e2e | ✅ fait |
 | 8 | Exports | feuille émargement PDF (QR), certificat, décompte PDF/CSV/XLSX — validé e2e | ✅ fait |
-| 9 | Accessibilité + i18n + gate CI a11y | axe/pa11y/Lighthouse, déclaration a11y | ⬜ |
+| 9 | Front (apps/web) + Accessibilité + i18n + gate CI a11y | PWA React/Vite + Capacitor, design system accessible, i18n FR/EN, login↔API validé navigateur — **gate CI a11y (axe/pa11y/Lighthouse) + déclaration a11y à faire** | 🟡 partiel |
 | 10 | Super-admin SaaS + plans/quotas | onboarding tenants, facturation SaaS | ⬜ |
 | 11 | Durcissement sécurité + RGPD + doc finale | SAST/SBOM/headers, registre RGPD, mapping Qualiopi | ⬜ |
 

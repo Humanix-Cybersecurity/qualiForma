@@ -171,6 +171,46 @@ export class EmargementService {
     });
   }
 
+  /** Créneaux de l'utilisateur courant (apprenant : ses sessions ; formateur : qu'il anime). */
+  async mesCreneaux(user: AccessClaims) {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      let where: object;
+      if (user.role === 'formateur') {
+        where = {
+          OR: [{ formateurId: user.sub }, { session: { formateurId: user.sub } }],
+        };
+      } else {
+        const inscriptions = await tx.inscription.findMany({
+          where: { apprenantId: user.sub, statut: { not: 'annulee' } },
+          select: { sessionId: true },
+        });
+        where = { sessionId: { in: inscriptions.map((i) => i.sessionId) } };
+      }
+
+      const creneaux = await tx.creneau.findMany({
+        where,
+        orderBy: [{ date: 'asc' }, { ordre: 'asc' }],
+        include: {
+          session: { include: { formation: { select: { intitule: true } } } },
+          emargements: { where: { userId: user.sub }, select: { statut: true } },
+        },
+      });
+
+      return creneaux.map((c) => ({
+        id: c.id,
+        sessionId: c.sessionId,
+        date: c.date.toISOString().slice(0, 10),
+        periode: c.periode,
+        heureDebut: c.heureDebut,
+        heureFin: c.heureFin,
+        lieu: c.lieu,
+        formationIntitule: c.session.formation.intitule,
+        signatureOuverte: c.signatureOuverte,
+        monStatut: c.emargements[0]?.statut ?? 'en_attente',
+      }));
+    });
+  }
+
   /** État d'émargement d'un créneau pour le contrôle formateur (complétude + manquants). */
   async etatCreneau(creneauId: string, user: AccessClaims) {
     return this.tenantPrisma.withTenant(async (tx) => {
