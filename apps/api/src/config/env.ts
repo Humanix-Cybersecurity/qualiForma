@@ -18,6 +18,28 @@ const envSchema = z.object({
   APP_ENCRYPTION_KEY: z
     .string()
     .refine((v) => Buffer.from(v, 'base64').length === 32, '32 octets en base64 attendus.'),
+
+  // --- Stockage objet S3 / MinIO ---
+  S3_ENDPOINT: z.string().url().default('http://localhost:9000'),
+  S3_REGION: z.string().default('eu-west-1'),
+  S3_BUCKET: z.string().default('humanix'),
+  S3_ACCESS_KEY: z.string().default('minioadmin'),
+  S3_SECRET_KEY: z.string().default('minioadmin'),
+  S3_FORCE_PATH_STYLE: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
+  S3_SSE: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
+
+  // --- ClamAV ---
+  CLAMAV_HOST: z.string().default('localhost'),
+  CLAMAV_PORT: z.coerce.number().int().positive().default(3310),
+
+  // --- Limites d'upload (sécurité, ADR 0006) ---
+  UPLOAD_MAX_BYTES: z.coerce.number().int().positive().default(52_428_800), // 50 Mio
 });
 
 export type Env = z.infer<typeof envSchema>;
