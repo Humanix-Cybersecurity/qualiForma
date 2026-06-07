@@ -19,6 +19,7 @@ import { UtilisateursPage } from './pages/UtilisateursPage';
 import { ConventionsPage } from './pages/ConventionsPage';
 import { FacturationPage } from './pages/FacturationPage';
 import { DevisPage } from './pages/DevisPage';
+import { QualiopiPage } from './pages/QualiopiPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { AdminTenantsPage } from './pages/AdminTenantsPage';
 import { AdminPlansPage } from './pages/AdminPlansPage';
@@ -66,6 +67,7 @@ export function App() {
           <Route path="creneaux" element={<RoleRoute roles={['apprenant', 'formateur']}><CreneauxPage /></RoleRoute>} />
           <Route path="creneaux/:id/signer" element={<RoleRoute roles={['apprenant', 'formateur']}><SignerPage /></RoleRoute>} />
           <Route path="questionnaires" element={<RoleRoute roles={['apprenant', 'admin_of']}><QuestionnairesPage /></RoleRoute>} />
+          <Route path="qualiopi" element={<RoleRoute roles={['admin_of', 'formateur']}><QualiopiPage /></RoleRoute>} />
           <Route path="attestations" element={<RoleRoute roles={['apprenant']}><AttestationsPage /></RoleRoute>} />
           <Route path="formations" element={<RoleRoute roles={['admin_of', 'formateur']}><FormationsPage /></RoleRoute>} />
           <Route path="sessions" element={<RoleRoute roles={['admin_of', 'formateur']}><SessionsPage /></RoleRoute>} />

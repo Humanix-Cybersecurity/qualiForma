@@ -4,6 +4,7 @@ import {
   BookOpen,
   Building2,
   CalendarCheck,
+  ClipboardCheck,
   ClipboardList,
   CreditCard,
   FolderClosed,
@@ -54,6 +55,7 @@ export function navForRole(role: Claims['role']): NavItem[] {
         { to: '/app/facturation', labelKey: 'facturation', icon: Receipt },
         { to: '/app/utilisateurs', labelKey: 'utilisateurs', icon: Users },
         { to: '/app/questionnaires', labelKey: 'questionnaires', icon: ClipboardList },
+        { to: '/app/qualiopi', labelKey: 'qualiopi', icon: ClipboardCheck },
         { to: '/app/documents', labelKey: 'documents', icon: FolderClosed },
         { to: '/app/reclamations', labelKey: 'reclamations', icon: MessageSquareWarning },
       ];

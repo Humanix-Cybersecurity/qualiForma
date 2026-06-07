@@ -141,6 +141,26 @@ export interface Bpf {
   financeurLabels: Record<string, string>;
 }
 
+export interface QualiopiIndicateur {
+  numero: number;
+  critere: number;
+  critereLibelle: string;
+  libelle: string;
+  alternance: boolean;
+  autoConforme: boolean | null;
+  statut: 'conforme' | 'a_completer' | 'non_applicable';
+  notes: string | null;
+  documentId: string | null;
+}
+export interface QualiopiDashboard {
+  criteres: Record<string, string>;
+  indicateurs: QualiopiIndicateur[];
+  score: number;
+  conformes: number;
+  applicables: number;
+  total: number;
+}
+
 export interface DashboardStats {
   formationsActives: number;
   sessionsTotal: number;
@@ -543,6 +563,18 @@ export const api = {
   },
   runPurge(auth: AuthState) {
     return request<{ emargements: number; scellements: number; audit: number }>('/admin/jobs/purger', { method: 'POST', auth });
+  },
+
+  // --- Conformité Qualiopi (RNQ) ---
+  qualiopiIndicateurs(auth: AuthState) {
+    return request<QualiopiDashboard>('/qualiopi/indicateurs', { auth });
+  },
+  setIndicateurStatut(
+    auth: AuthState,
+    numero: number,
+    body: { statut?: 'conforme' | 'a_completer' | 'non_applicable'; notes?: string | null; documentId?: string | null },
+  ) {
+    return request<{ numero: number; statut: string }>(`/qualiopi/indicateurs/${numero}`, { method: 'PUT', auth, body });
   },
 
   // --- Pilotage / statistiques ---
