@@ -378,7 +378,10 @@ model Creneau {
   visioUrl    String?        @map("visio_url")
   formateurId String?        @map("formateur_id") @db.Uuid
   // Le formateur ouvre/ferme la fenêtre de signature (ADR 0005).
-  signatureOuverte Boolean   @default(false) @map("signature_ouverte")
+  signatureOuverte   Boolean   @default(false) @map("signature_ouverte")
+  signatureOuverteAt DateTime? @map("signature_ouverte_at")
+  // Code éphémère affiché par le formateur, saisi par l'apprenant (méthode "code"/"qr").
+  signatureCode      String?   @map("signature_code")
   ordre       Int            @default(0)
   createdAt   DateTime       @default(now()) @map("created_at")
 
