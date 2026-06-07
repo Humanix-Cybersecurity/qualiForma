@@ -54,6 +54,11 @@ beforeAll(async () => {
   });
   userA = ua.id;
   userB = ub.id;
+
+  // Table métier (étape 3) : vérifie que la RLS dynamique la couvre aussi.
+  await ownerClient.formation.create({
+    data: { tenantId: tenantA, intitule: 'Formation A', dureeHeures: '7', indicateursQualiopi: ['1'] },
+  });
 });
 
 afterAll(async () => {
@@ -105,6 +110,15 @@ describe('Isolation multi-tenant (RLS)', () => {
   it('sans contexte tenant, aucune ligne n\'est visible (fail-closed)', async () => {
     const count = await appClient.user.count();
     expect(count).toBe(0);
+  });
+
+  it('applique la RLS dynamiquement aux tables métier (Formation)', async () => {
+    const vuesParA = await withTenant(tenantA, (tx) => tx.formation.count());
+    const vuesParB = await withTenant(tenantB, (tx) => tx.formation.count());
+    const sansContexte = await appClient.formation.count();
+    expect(vuesParA).toBe(1);
+    expect(vuesParB).toBe(0);
+    expect(sansContexte).toBe(0);
   });
 
   it('resolve_tenant fonctionne hors contexte (SECURITY DEFINER) et reste limité au slug', async () => {

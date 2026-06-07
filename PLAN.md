@@ -5,9 +5,9 @@
 
 | # | Étape | Livrables | Statut |
 | --- | --- | --- | --- |
-| 1 | Monorepo + tooling + CI squelette + **ADR** | arborescence, configs, 7 ADR, licence | 🟡 à valider |
-| 2 | Couche tenant + RLS + auth/RBAC/MFA + tests d'isolation | middleware tenant, policies RLS, JWT+TOTP | ⬜ |
-| 3 | Modèle de données + migrations + seed | schéma Prisma, migrations SQL (RLS), seed démo | ⬜ |
+| 1 | Monorepo + tooling + CI squelette + **ADR** | arborescence, configs, 7 ADR, licence | ✅ fait |
+| 2 | Couche tenant + RLS + auth/RBAC/MFA + tests d'isolation | middleware tenant, policies RLS, JWT+TOTP | ✅ fait |
+| 3 | Modèle de données + migrations + seed | schéma Prisma (26 tables), RLS dynamique, seed démo | ✅ fait |
 | 4 | Documentaire (upload + ClamAV + chiffrement + ZIP sécurisé) | pipeline upload fail-closed | ⬜ |
 | 5 | **Moteur d'émargement & signature** (priorité produit) | `signature-engine`, audit chaîné, PDF, vérification | ⬜ |
 | 6 | Sessions/créneaux/planning + mode formateur | projection, lancement, contrôle, co-signature | ⬜ |

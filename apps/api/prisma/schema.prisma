@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Étape 2 : modèle minimal pour la couche tenant + auth. Le modèle métier complet
-// (Formation, Session, Creneau, Emargement, PreuveSignature, ...) arrive à l'étape 3.
-//
-// IMPORTANT : Prisma ne gère pas les policies Row-Level Security. Après `prisma migrate`,
-// appliquer `prisma/sql/rls-policies.sql` (script `pnpm db:rls`). Voir ADR 0002.
+// Modèle de données métier (étape 3). Conventions :
+//   * Maille d'émargement = le Creneau (DEMI-JOURNÉE), jamais la Session (contrainte §3).
+//   * Toute table cloisonnée porte `tenant_id` → RLS appliquée dynamiquement par
+//     prisma/sql/rls-policies.sql (toute table ayant une colonne tenant_id). Voir ADR 0002.
+//   * Relation `tenant` (FK + cascade) déclarée sur les agrégats racines ; les tables feuilles
+//     gardent `tenant_id` en scalaire (RLS only) et cascadent via leur parent.
+//   * `plan` est GLOBAL (SaaS) : pas de tenant_id, pas de RLS, lecture seule pour `app`.
 
 generator client {
   provider = "prisma-client-js"
@@ -16,6 +18,10 @@ datasource db {
   // Migrations / DDL : rôle propriétaire (superuser). Prisma utilise directUrl pour migrate.
   directUrl = env("DATABASE_MIGRATION_URL")
 }
+
+// ===========================================================================
+// Enums
+// ===========================================================================
 
 enum Role {
   super_admin
@@ -30,6 +36,142 @@ enum TenantStatus {
   suspended
 }
 
+enum PlanInterval {
+  mensuel
+  annuel
+}
+
+enum SubscriptionStatus {
+  trialing
+  active
+  past_due
+  canceled
+}
+
+/// Période de la demi-journée — maille de l'émargement.
+enum CreneauPeriode {
+  matin
+  apres_midi
+}
+
+enum SessionStatut {
+  planifiee
+  en_cours
+  terminee
+  annulee
+}
+
+enum InscriptionStatut {
+  prevue
+  confirmee
+  presente
+  abandon
+  annulee
+}
+
+enum ModaliteLieu {
+  presentiel
+  visio
+  hybride
+}
+
+/// Qui appose la signature sur un créneau (co-signature formateur obligatoire).
+enum SignataireType {
+  apprenant
+  formateur
+}
+
+enum EmargementMethode {
+  code
+  qr
+  manuscrite
+}
+
+enum EmargementStatut {
+  en_attente
+  signe
+  refuse
+  absent
+}
+
+enum SignatureLevel {
+  SES
+  SEA
+}
+
+enum HorodatageType {
+  serveur
+  rfc3161
+}
+
+enum DocumentType {
+  pdf
+  txt
+  zip
+  syllabus
+  autre
+}
+
+enum DocumentScope {
+  tenant
+  formation
+  session
+  apprenant
+}
+
+enum ScanStatus {
+  pending
+  clean
+  infected
+  error
+}
+
+enum ConventionStatut {
+  brouillon
+  envoyee
+  signee
+  annulee
+}
+
+enum QuestionnaireType {
+  positionnement_amont
+  evaluation_acquis
+  satisfaction_chaud
+  satisfaction_froid
+  recueil_besoin
+}
+
+enum QuestionType {
+  texte_libre
+  choix_unique
+  choix_multiple
+  echelle
+  booleen
+}
+
+enum CertificatStatut {
+  brouillon
+  emis
+  annule
+}
+
+enum ReclamationStatut {
+  ouverte
+  en_traitement
+  resolue
+  cloturee
+}
+
+enum ActionStatut {
+  ouverte
+  en_cours
+  cloturee
+}
+
+// ===========================================================================
+// Tenant & SaaS
+// ===========================================================================
+
 /// Organisme de formation (tenant). Table racine du cloisonnement.
 model Tenant {
   id        String       @id @default(uuid()) @db.Uuid
@@ -42,9 +184,72 @@ model Tenant {
   users         User[]
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
+  subscriptions Subscription[]
+  quota         Quota?
+  entreprises   EntrepriseCliente[]
+  formations    Formation[]
+  sessions      Session[]
+  inscriptions  Inscription[]
+  conventions   Convention[]
+  documents     Document[]
+  questionnaires Questionnaire[]
+  reclamations  Reclamation[]
+  actions       ActionAmeliorationContinue[]
+  certificats   CertificatRealisation[]
+  decomptes     DecompteFacturation[]
 
   @@map("tenant")
 }
+
+/// Catalogue d'offres SaaS — GLOBAL (géré par super_admin), pas de cloisonnement tenant.
+model Plan {
+  id                String       @id @default(uuid()) @db.Uuid
+  code              String       @unique
+  name              String
+  priceCents        Int          @default(0) @map("price_cents")
+  interval          PlanInterval @default(mensuel)
+  maxUsers          Int?         @map("max_users")
+  maxActiveSessions Int?         @map("max_active_sessions")
+  storageBytes      BigInt?      @map("storage_bytes")
+  features          Json         @default("{}")
+  createdAt         DateTime     @default(now()) @map("created_at")
+
+  subscriptions Subscription[]
+
+  @@map("plan")
+}
+
+model Subscription {
+  id               String             @id @default(uuid()) @db.Uuid
+  tenantId         String             @map("tenant_id") @db.Uuid
+  planId           String             @map("plan_id") @db.Uuid
+  status           SubscriptionStatus @default(active)
+  currentPeriodEnd DateTime?          @map("current_period_end")
+  createdAt        DateTime           @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan   Plan   @relation(fields: [planId], references: [id])
+
+  @@index([tenantId])
+  @@map("subscription")
+}
+
+/// Quotas effectifs du tenant (peuvent surcharger ceux du plan).
+model Quota {
+  id                String  @id @default(uuid()) @db.Uuid
+  tenantId          String  @unique @map("tenant_id") @db.Uuid
+  maxUsers          Int?    @map("max_users")
+  maxActiveSessions Int?    @map("max_active_sessions")
+  storageBytes      BigInt? @map("storage_bytes")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("quota")
+}
+
+// ===========================================================================
+// Utilisateurs & auth (étape 2 — inchangé)
+// ===========================================================================
 
 model User {
   id           String  @id @default(uuid()) @db.Uuid
@@ -54,19 +259,31 @@ model User {
   role         Role
   isActive     Boolean @default(true) @map("is_active")
 
+  // Identité (utile pour convocations, feuilles d'émargement).
+  prenom String?
+  nom    String?
+
   // MFA TOTP. Le secret est chiffré au repos par l'application avant stockage.
-  mfaEnabled       Boolean @default(false) @map("mfa_enabled")
-  mfaSecretEnc     String? @map("mfa_secret_enc")
+  mfaEnabled   Boolean @default(false) @map("mfa_enabled")
+  mfaSecretEnc String? @map("mfa_secret_enc")
 
   // Protection brute-force (cf. §12).
   failedLoginCount Int       @default(0) @map("failed_login_count")
   lockedUntil      DateTime? @map("locked_until")
 
+  // Accessibilité : adaptations pour apprenant en situation de handicap (référent §7).
+  handicapAdaptations String? @map("handicap_adaptations")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  refreshTokens RefreshToken[]
+  tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshTokens    RefreshToken[]
+  inscriptions     Inscription[]
+  emargements      Emargement[]
+  sessionsAnimees  Session[]      @relation("SessionFormateur")
+  creneauxAnimes   Creneau[]      @relation("CreneauFormateur")
+  documentsUploades Document[]    @relation("DocumentUploader")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -92,7 +309,446 @@ model RefreshToken {
   @@map("refresh_token")
 }
 
-/// Journal d'audit append-only hash-chaîné (squelette ; chaînage complet à l'étape 5, ADR 0003).
+// ===========================================================================
+// Catalogue & sessions
+// ===========================================================================
+
+model Formation {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  intitule      String
+  objectifs     String?
+  prerequis     String?
+  dureeHeures   Decimal  @map("duree_heures") @db.Decimal(6, 2)
+  tarifCents    Int?     @map("tarif_cents")
+  // Modalités d'accès pour personnes en situation de handicap (exigence opposable §3).
+  modalitesAccesHandicap String? @map("modalites_acces_handicap")
+  // Indicateurs RNQ rattachés (ex. ["1","2","8"]).
+  indicateursQualiopi    String[] @map("indicateurs_qualiopi")
+  actif         Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sessions       Session[]
+  questionnaires Questionnaire[]
+
+  @@index([tenantId])
+  @@map("formation")
+}
+
+model Session {
+  id          String        @id @default(uuid()) @db.Uuid
+  tenantId    String        @map("tenant_id") @db.Uuid
+  formationId String        @map("formation_id") @db.Uuid
+  intitule    String?
+  dateDebut   DateTime      @map("date_debut") @db.Date
+  dateFin     DateTime      @map("date_fin") @db.Date
+  statut      SessionStatut @default(planifiee)
+  modaliteLieu ModaliteLieu @default(presentiel) @map("modalite_lieu")
+  lieu        String?
+  formateurId String?       @map("formateur_id") @db.Uuid
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  formation    Formation     @relation(fields: [formationId], references: [id], onDelete: Cascade)
+  formateur    User?         @relation("SessionFormateur", fields: [formateurId], references: [id])
+  creneaux     Creneau[]
+  inscriptions Inscription[]
+  conventions  Convention[]
+  decomptes    DecompteFacturation[]
+  reclamations Reclamation[]
+
+  @@index([tenantId])
+  @@index([formationId])
+  @@map("session")
+}
+
+/// Demi-journée d'une session = MAILLE de l'émargement (matin / après-midi).
+model Creneau {
+  id          String         @id @default(uuid()) @db.Uuid
+  tenantId    String         @map("tenant_id") @db.Uuid
+  sessionId   String         @map("session_id") @db.Uuid
+  date        DateTime       @db.Date
+  periode     CreneauPeriode
+  heureDebut  String         @map("heure_debut") // HH:MM
+  heureFin    String         @map("heure_fin")
+  lieu        String?
+  visioUrl    String?        @map("visio_url")
+  formateurId String?        @map("formateur_id") @db.Uuid
+  // Le formateur ouvre/ferme la fenêtre de signature (ADR 0005).
+  signatureOuverte Boolean   @default(false) @map("signature_ouverte")
+  ordre       Int            @default(0)
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  session     Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  formateur   User?        @relation("CreneauFormateur", fields: [formateurId], references: [id])
+  emargements Emargement[]
+
+  @@unique([sessionId, date, periode])
+  @@index([tenantId])
+  @@index([sessionId])
+  @@map("creneau")
+}
+
+// ===========================================================================
+// Clients, conventions, inscriptions, convocations
+// ===========================================================================
+
+model EntrepriseCliente {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  raisonSociale String  @map("raison_sociale")
+  siret        String?
+  adresse      String?
+  contactEmail String?  @map("contact_email")
+  contactNom   String?  @map("contact_nom")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  inscriptions Inscription[]
+  conventions  Convention[]
+  decomptes    DecompteFacturation[]
+
+  @@index([tenantId])
+  @@map("entreprise_cliente")
+}
+
+model Convention {
+  id             String           @id @default(uuid()) @db.Uuid
+  tenantId       String           @map("tenant_id") @db.Uuid
+  numero         String
+  sessionId      String?          @map("session_id") @db.Uuid
+  entrepriseId   String?          @map("entreprise_id") @db.Uuid
+  statut         ConventionStatut @default(brouillon)
+  // Signature de niveau SEA prévue via QTSP (ADR 0003) ; SES par défaut.
+  signatureLevel SignatureLevel   @default(SES) @map("signature_level")
+  montantCents   Int?             @map("montant_cents")
+  documentId     String?          @map("document_id") @db.Uuid
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session    Session?           @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  entreprise EntrepriseCliente? @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, numero])
+  @@index([tenantId])
+  @@map("convention")
+}
+
+model Inscription {
+  id             String            @id @default(uuid()) @db.Uuid
+  tenantId       String            @map("tenant_id") @db.Uuid
+  sessionId      String            @map("session_id") @db.Uuid
+  apprenantId    String            @map("apprenant_id") @db.Uuid
+  entrepriseId   String?           @map("entreprise_id") @db.Uuid
+  statut         InscriptionStatut @default(prevue)
+  dateInscription DateTime         @default(now()) @map("date_inscription")
+
+  tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session    Session            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  apprenant  User               @relation(fields: [apprenantId], references: [id], onDelete: Cascade)
+  entreprise EntrepriseCliente? @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
+  convocations Convocation[]
+  soumissions  QuestionnaireSoumission[]
+  certificat   CertificatRealisation?
+
+  @@unique([sessionId, apprenantId])
+  @@index([tenantId])
+  @@map("inscription")
+}
+
+model Convocation {
+  id            String    @id @default(uuid()) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  inscriptionId String    @map("inscription_id") @db.Uuid
+  documentId    String?   @map("document_id") @db.Uuid
+  sentAt        DateTime? @map("sent_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  inscription Inscription @relation(fields: [inscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("convocation")
+}
+
+// ===========================================================================
+// Émargement & preuve de signature (cœur produit — détaillé à l'étape 5)
+// ===========================================================================
+
+/// Émargement d'UN signataire sur UN créneau (demi-journée). Co-signature formateur imposée.
+model Emargement {
+  id               String           @id @default(uuid()) @db.Uuid
+  tenantId         String           @map("tenant_id") @db.Uuid
+  creneauId        String           @map("creneau_id") @db.Uuid
+  userId           String           @map("user_id") @db.Uuid
+  signataire       SignataireType
+  methode          EmargementMethode
+  statut           EmargementStatut @default(en_attente)
+  timestampServeur DateTime?        @map("timestamp_serveur") // horodatage faisant foi
+  timestampClient  DateTime?        @map("timestamp_client")  // indicatif (offline)
+  ip               String?
+  userAgent        String?          @map("user_agent")
+  geoloc           Json?
+  hashPayload      String?          @map("hash_payload")
+  // Heures réelles de présence (retards / départs anticipés, ADR 0003).
+  heureArriveeReelle String?        @map("heure_arrivee_reelle")
+  heureDepartReelle  String?        @map("heure_depart_reelle")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  creneau Creneau          @relation(fields: [creneauId], references: [id], onDelete: Cascade)
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preuve  PreuveSignature?
+
+  @@unique([creneauId, userId])
+  @@index([tenantId])
+  @@map("emargement")
+}
+
+/// Faisceau de preuves (append-only). Immuable : pas d'UPDATE/DELETE pour `app` (RLS + GRANT).
+model PreuveSignature {
+  id                 String         @id @default(uuid()) @db.Uuid
+  tenantId           String         @map("tenant_id") @db.Uuid
+  emargementId       String         @unique @map("emargement_id") @db.Uuid
+  payloadSha256      String         @map("payload_sha256")
+  // Faisceau complet capturé (ip, ua, device, geoloc, contenu signé...).
+  faisceau           Json
+  signatureLevel     SignatureLevel @default(SES) @map("signature_level")
+  horodatageType     HorodatageType @default(serveur) @map("horodatage_type")
+  horodatageToken    String?        @map("horodatage_token") // jeton RFC 3161 si qualifié
+  // Chaînage d'audit : hash(n) = SHA-256(payload(n) ‖ hash(n-1)).
+  auditPrevHash      String?        @map("audit_prev_hash")
+  auditHash          String         @map("audit_hash")
+  // Lien de vérification d'authenticité (URL + QR sur le PDF).
+  verificationToken  String         @unique @map("verification_token")
+  createdAt          DateTime       @default(now()) @map("created_at")
+
+  emargement Emargement @relation(fields: [emargementId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("preuve_signature")
+}
+
+// ===========================================================================
+// Documentaire (étape 4)
+// ===========================================================================
+
+model Document {
+  id           String        @id @default(uuid()) @db.Uuid
+  tenantId     String        @map("tenant_id") @db.Uuid
+  type         DocumentType
+  scope        DocumentScope
+  formationId  String?       @map("formation_id") @db.Uuid
+  sessionId    String?       @map("session_id") @db.Uuid
+  apprenantId  String?       @map("apprenant_id") @db.Uuid
+  nomFichier   String        @map("nom_fichier")
+  objectKey    String        @map("object_key") // clé S3/MinIO
+  mimeType     String        @map("mime_type")  // type MIME réel (sniffé, ADR 0006)
+  tailleOctets BigInt        @map("taille_octets")
+  checksumSha256 String      @map("checksum_sha256")
+  scanStatus   ScanStatus    @default(pending) @map("scan_status")
+  chiffre      Boolean       @default(true)
+  uploadedById String?       @map("uploaded_by_id") @db.Uuid
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  uploadedBy User?  @relation("DocumentUploader", fields: [uploadedById], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, scope])
+  @@map("document")
+}
+
+// ===========================================================================
+// Questionnaires & évaluations (étape 7 — mapping Qualiopi §9)
+// ===========================================================================
+
+model Questionnaire {
+  id          String            @id @default(uuid()) @db.Uuid
+  tenantId    String            @map("tenant_id") @db.Uuid
+  type        QuestionnaireType
+  titre       String
+  formationId String?           @map("formation_id") @db.Uuid
+  sessionId   String?           @map("session_id") @db.Uuid
+  anonyme     Boolean           @default(false)
+  actif       Boolean           @default(true)
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  formation   Formation? @relation(fields: [formationId], references: [id], onDelete: SetNull)
+  questions   Question[]
+  soumissions QuestionnaireSoumission[]
+  restitution Restitution?
+
+  @@index([tenantId])
+  @@map("questionnaire")
+}
+
+model Question {
+  id              String       @id @default(uuid()) @db.Uuid
+  tenantId        String       @map("tenant_id") @db.Uuid
+  questionnaireId String       @map("questionnaire_id") @db.Uuid
+  libelle         String
+  type            QuestionType
+  options         Json? // pour choix_unique / choix_multiple / echelle
+  obligatoire     Boolean      @default(true)
+  ordre           Int          @default(0)
+
+  questionnaire Questionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  reponses      Reponse[]
+
+  @@index([tenantId])
+  @@index([questionnaireId])
+  @@map("question")
+}
+
+model QuestionnaireSoumission {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  questionnaireId String   @map("questionnaire_id") @db.Uuid
+  inscriptionId   String?  @map("inscription_id") @db.Uuid
+  submittedAt     DateTime @default(now()) @map("submitted_at")
+
+  questionnaire Questionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  inscription   Inscription?  @relation(fields: [inscriptionId], references: [id], onDelete: SetNull)
+  reponses      Reponse[]
+
+  @@index([tenantId])
+  @@map("questionnaire_soumission")
+}
+
+model Reponse {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  soumissionId String   @map("soumission_id") @db.Uuid
+  questionId   String   @map("question_id") @db.Uuid
+  valeur       String
+
+  soumission QuestionnaireSoumission @relation(fields: [soumissionId], references: [id], onDelete: Cascade)
+  question   Question                @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("reponse")
+}
+
+/// Restitution agrégée (cache de calcul) d'un questionnaire.
+model Restitution {
+  id              String   @id @default(uuid()) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  questionnaireId String   @unique @map("questionnaire_id") @db.Uuid
+  resume          Json
+  generatedAt     DateTime @default(now()) @map("generated_at")
+
+  questionnaire Questionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("restitution")
+}
+
+// ===========================================================================
+// Exports : certificat & décompte (étape 8)
+// ===========================================================================
+
+model CertificatRealisation {
+  id             String           @id @default(uuid()) @db.Uuid
+  tenantId       String           @map("tenant_id") @db.Uuid
+  inscriptionId  String           @unique @map("inscription_id") @db.Uuid
+  numero         String
+  statut         CertificatStatut @default(brouillon)
+  heuresRealisees Decimal         @map("heures_realisees") @db.Decimal(6, 2)
+  signatureLevel SignatureLevel   @default(SES) @map("signature_level")
+  documentId     String?          @map("document_id") @db.Uuid
+  dateEmission   DateTime?        @map("date_emission")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  inscription Inscription @relation(fields: [inscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, numero])
+  @@index([tenantId])
+  @@map("certificat_realisation")
+}
+
+model DecompteFacturation {
+  id           String   @id @default(uuid()) @db.Uuid
+  tenantId     String   @map("tenant_id") @db.Uuid
+  sessionId    String   @map("session_id") @db.Uuid
+  entrepriseId String?  @map("entreprise_id") @db.Uuid
+  periodeDebut DateTime @map("periode_debut") @db.Date
+  periodeFin   DateTime @map("periode_fin") @db.Date
+  totalHeures  Decimal  @map("total_heures") @db.Decimal(8, 2)
+  montantCents Int?     @map("montant_cents")
+  documentId   String?  @map("document_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session    Session            @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  entreprise EntrepriseCliente? @relation(fields: [entrepriseId], references: [id], onDelete: SetNull)
+  lignes     DecompteLigne[]
+
+  @@index([tenantId])
+  @@map("decompte_facturation")
+}
+
+model DecompteLigne {
+  id          String  @id @default(uuid()) @db.Uuid
+  tenantId    String  @map("tenant_id") @db.Uuid
+  decompteId  String  @map("decompte_id") @db.Uuid
+  apprenantId String  @map("apprenant_id") @db.Uuid
+  heures      Decimal @db.Decimal(8, 2)
+
+  decompte DecompteFacturation @relation(fields: [decompteId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("decompte_ligne")
+}
+
+// ===========================================================================
+// Qualité : réclamations & amélioration continue (Qualiopi)
+// ===========================================================================
+
+model Reclamation {
+  id           String            @id @default(uuid()) @db.Uuid
+  tenantId     String            @map("tenant_id") @db.Uuid
+  sessionId    String?           @map("session_id") @db.Uuid
+  auteurUserId String?           @map("auteur_user_id") @db.Uuid
+  objet        String
+  description  String
+  statut       ReclamationStatut @default(ouverte)
+  createdAt    DateTime          @default(now()) @map("created_at")
+  resolvedAt   DateTime?         @map("resolved_at")
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session  Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  actions  ActionAmeliorationContinue[]
+
+  @@index([tenantId])
+  @@map("reclamation")
+}
+
+model ActionAmeliorationContinue {
+  id                String       @id @default(uuid()) @db.Uuid
+  tenantId          String       @map("tenant_id") @db.Uuid
+  reclamationId     String?      @map("reclamation_id") @db.Uuid
+  description       String
+  responsableUserId String?      @map("responsable_user_id") @db.Uuid
+  statut            ActionStatut @default(ouverte)
+  dueDate           DateTime?    @map("due_date")
+  createdAt         DateTime     @default(now()) @map("created_at")
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reclamation Reclamation? @relation(fields: [reclamationId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("action_amelioration_continue")
+}
+
+// ===========================================================================
+// Audit (étape 2 — inchangé ; chaînage complet à l'étape 5)
+// ===========================================================================
+
+/// Journal d'audit append-only hash-chaîné. Immuable : pas d'UPDATE/DELETE pour `app`.
 model AuditLog {
   id          String   @id @default(uuid()) @db.Uuid
   tenantId    String   @map("tenant_id") @db.Uuid
