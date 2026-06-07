@@ -9,13 +9,17 @@ import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { EmargementService, type SignInput } from './emargement.service';
 
 const signSchema = z.object({
-  methode: z.enum(['code', 'qr', 'manuscrite']),
+  methode: z.enum(['code', 'qr', 'manuscrite', 'lien']),
   code: z.string().regex(/^\d{6}$/).optional(),
+  jeton: z.string().min(1).optional(),
   geoloc: z
     .object({ lat: z.number(), lng: z.number(), accuracy: z.number().optional() })
     .optional(),
+  consentementGeoloc: z.boolean().optional(),
   timestampClient: z.string().datetime().optional(),
 });
+
+const jetonSchema = z.object({ pourUserId: z.string().uuid().optional() });
 
 @Controller()
 export class EmargementController {
@@ -33,6 +37,20 @@ export class EmargementController {
   @HttpCode(204)
   async fermer(@Param('id') id: string, @CurrentUser() user: AccessClaims) {
     await this.emargement.fermerSignature(id, user);
+  }
+
+  /**
+   * Génère un jeton de signature anti-fraude (QR dynamique). À appeler en rotation côté écran
+   * formateur (TTL court). `pourUserId` → jeton personnel à usage unique (lien e-mail).
+   */
+  @Post('creneaux/:id/jetons')
+  @Auth('formateur', 'admin_of')
+  jeton(
+    @Param('id') id: string,
+    @CurrentUser() user: AccessClaims,
+    @Body(new ZodValidationPipe(jetonSchema)) body: { pourUserId?: string },
+  ) {
+    return this.emargement.genererJeton(id, user, body.pourUserId);
   }
 
   /** L'apprenant ou le formateur signe le créneau (code / QR / manuscrite). */

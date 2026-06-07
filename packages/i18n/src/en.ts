@@ -127,6 +127,7 @@ export const en: typeof fr = {
     methodManuscrite: 'Handwritten signature',
     enterCode: 'Enter the code shown by the trainer',
     confirm: 'Sign',
+    viaQr: 'Signing via secure QR code. Confirm your attendance.',
     success: 'Attendance recorded.',
     verifyLink: 'Verification link',
   },

@@ -48,6 +48,19 @@ const envSchema = z.object({
 
   // --- Limites d'upload (sécurité, ADR 0006) ---
   UPLOAD_MAX_BYTES: z.coerce.number().int().positive().default(52_428_800), // 50 Mio
+
+  // --- Horodatage qualifié RFC 3161 / eIDAS ---
+  // Désactivé par défaut → mode dégradé (horodatage serveur signé). Activer en prod.
+  TSA_ENABLED: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  TSA_URL: z.string().url().optional(),
+  TSA_POLICY_OID: z.string().optional(),
+
+  // --- Jetons de signature anti-fraude (QR dynamique) ---
+  JETON_TTL_SECONDS: z.coerce.number().int().positive().default(60), // QR projeté (rotatif)
+  JETON_LIEN_TTL_SECONDS: z.coerce.number().int().positive().default(86_400), // lien e-mail
+
+  // --- Conservation des preuves (RGPD) : 10 ans par défaut pour la valeur probante ---
+  PREUVE_RETENTION_YEARS: z.coerce.number().int().positive().default(10),
 });
 
 export type Env = z.infer<typeof envSchema>;

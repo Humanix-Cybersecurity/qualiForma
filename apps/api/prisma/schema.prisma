@@ -82,9 +82,16 @@ enum SignataireType {
 }
 
 enum EmargementMethode {
-  code
-  qr
-  manuscrite
+  code // code saisi (affiché à l'écran ou envoyé par SMS)
+  qr // QR dynamique projeté
+  manuscrite // tracé tactile
+  lien // lien personnel (e-mail) à usage unique
+}
+
+/// Portée d'un jeton de signature : partagé (QR projeté, rotatif) ou personnel (usage unique).
+enum SignatureJetonScope {
+  partage
+  apprenant
 }
 
 enum EmargementStatut {
@@ -388,11 +395,32 @@ model Creneau {
   session     Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   formateur   User?        @relation("CreneauFormateur", fields: [formateurId], references: [id])
   emargements Emargement[]
+  jetons      SignatureJeton[]
 
   @@unique([sessionId, date, periode])
   @@index([tenantId])
   @@index([sessionId])
   @@map("creneau")
+}
+
+/// Jeton de signature anti-fraude lié à un créneau (séquence). TTL court + rotation.
+/// `partage` : QR projeté (réutilisable pendant le TTL) ; `apprenant` : lien personnel à USAGE UNIQUE.
+model SignatureJeton {
+  id        String              @id @default(uuid()) @db.Uuid
+  tenantId  String              @map("tenant_id") @db.Uuid
+  creneauId String              @map("creneau_id") @db.Uuid
+  userId    String?             @map("user_id") @db.Uuid
+  token     String              @unique
+  scope     SignatureJetonScope @default(partage)
+  expiresAt DateTime            @map("expires_at")
+  usedAt    DateTime?           @map("used_at")
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  creneau Creneau @relation(fields: [creneauId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([creneauId])
+  @@map("signature_jeton")
 }
 
 // ===========================================================================
@@ -494,6 +522,8 @@ model Emargement {
   ip               String?
   userAgent        String?          @map("user_agent")
   geoloc           Json?
+  // Consentement explicite à la capture de géolocalisation (RGPD).
+  consentementGeoloc Boolean        @default(false) @map("consentement_geoloc")
   hashPayload      String?          @map("hash_payload")
   // Heures réelles de présence (retards / départs anticipés, ADR 0003).
   heureArriveeReelle String?        @map("heure_arrivee_reelle")

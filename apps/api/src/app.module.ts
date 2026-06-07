@@ -3,6 +3,7 @@ import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common
 import { LoggerModule } from 'nestjs-pino';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuditModule } from './audit/audit.module';
+import { SignatureModule } from './signature/signature.module';
 import { TenantModule } from './tenant/tenant.module';
 import { TenantMiddleware } from './tenant/tenant.middleware';
 import { AuthModule } from './auth/auth.module';
@@ -26,6 +27,7 @@ import { HealthController } from './health/health.controller';
     }),
     PrismaModule,
     AuditModule,
+    SignatureModule,
     TenantModule,
     AuthModule,
     DocumentsModule,

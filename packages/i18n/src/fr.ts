@@ -124,6 +124,7 @@ export const fr = {
     methodManuscrite: 'Signature manuscrite',
     enterCode: 'Saisir le code affiché par le formateur',
     confirm: 'Signer',
+    viaQr: 'Émargement via QR code sécurisé. Confirmez votre présence.',
     success: 'Émargement enregistré.',
     verifyLink: 'Lien de vérification',
   },

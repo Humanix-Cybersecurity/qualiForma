@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Radio, RadioGroup } from 'react-aria-components';
 import { Alert, Button, Card, TextField } from '@humanix/ui';
 import { useAuth } from '../auth/AuthProvider';
@@ -11,6 +11,8 @@ import { PageHeader } from '../components/PageHeader';
 export function SignerPage() {
   const { t } = useTranslation();
   const { id = '' } = useParams();
+  const [params] = useSearchParams();
+  const jeton = params.get('jeton'); // présent quand on arrive via un QR/lien dynamique
   const { auth } = useAuth();
   const [methode, setMethode] = useState<'code' | 'manuscrite'>('code');
   const [code, setCode] = useState('');
@@ -24,7 +26,11 @@ export function SignerPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await api.signer(auth, id, methode, methode === 'code' ? code : undefined);
+      // Jeton dynamique (QR/lien) prioritaire ; sinon code / manuscrite.
+      const body = jeton
+        ? ({ methode: 'qr', jeton } as const)
+        : ({ methode, ...(methode === 'code' ? { code } : {}) } as const);
+      const res = await api.signer(auth, id, body);
       setToken(res.verificationToken);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
@@ -58,31 +64,37 @@ export function SignerPage() {
       <Card className="max-w-lg">
         {error ? <div className="mb-4"><Alert tone="error">{error}</Alert></div> : null}
         <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-          <RadioGroup
-            value={methode}
-            onChange={(v) => setMethode(v as 'code' | 'manuscrite')}
-            className="flex flex-col gap-2"
-            aria-label={t('sign.method')}
-          >
-            <span className="text-sm font-medium text-slate-800">{t('sign.method')}</span>
-            <Radio value="code" className="flex items-center gap-2 text-sm text-slate-700">
-              {t('sign.methodCode')}
-            </Radio>
-            <Radio value="manuscrite" className="flex items-center gap-2 text-sm text-slate-700">
-              {t('sign.methodManuscrite')}
-            </Radio>
-          </RadioGroup>
+          {jeton ? (
+            <p className="text-sm text-slate-600">{t('sign.viaQr')}</p>
+          ) : (
+            <>
+              <RadioGroup
+                value={methode}
+                onChange={(v) => setMethode(v as 'code' | 'manuscrite')}
+                className="flex flex-col gap-2"
+                aria-label={t('sign.method')}
+              >
+                <span className="text-sm font-medium text-slate-800">{t('sign.method')}</span>
+                <Radio value="code" className="flex items-center gap-2 text-sm text-slate-700">
+                  {t('sign.methodCode')}
+                </Radio>
+                <Radio value="manuscrite" className="flex items-center gap-2 text-sm text-slate-700">
+                  {t('sign.methodManuscrite')}
+                </Radio>
+              </RadioGroup>
 
-          {methode === 'code' ? (
-            <TextField
-              label={t('creneaux.code')}
-              description={t('sign.enterCode')}
-              value={code}
-              onChange={setCode}
-              inputMode="numeric"
-              isRequired
-            />
-          ) : null}
+              {methode === 'code' ? (
+                <TextField
+                  label={t('creneaux.code')}
+                  description={t('sign.enterCode')}
+                  value={code}
+                  onChange={setCode}
+                  inputMode="numeric"
+                  isRequired
+                />
+              ) : null}
+            </>
+          )}
 
           <Button type="submit" isDisabled={loading} className="self-start">
             {loading ? t('common.loading') : t('sign.confirm')}

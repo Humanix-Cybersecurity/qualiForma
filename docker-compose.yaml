@@ -13,6 +13,7 @@ services:
       POSTGRES_USER: humanix_admin
       POSTGRES_PASSWORD: humanix_admin
       POSTGRES_DB: humanix
+    ports: ["5432:5432"] # exposé pour l'outillage dev (migrations, psql)
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./infra/docker/initdb:/docker-entrypoint-initdb.d:ro

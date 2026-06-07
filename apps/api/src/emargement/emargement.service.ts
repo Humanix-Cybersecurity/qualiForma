@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { randomInt, randomUUID } from 'node:crypto';
+import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -16,20 +16,33 @@ import {
   type SignaturePayload,
 } from '@humanix/signature-engine';
 import type { AccessClaims } from '@humanix/domain';
+import { loadEnv } from '../config/env';
 import { TenantPrismaService, type TenantClient } from '../prisma/tenant-prisma.service';
+import { TsaService } from '../signature/tsa.service';
 
 export interface SignInput {
-  methode: 'code' | 'qr' | 'manuscrite';
+  methode: 'code' | 'qr' | 'manuscrite' | 'lien';
+  /** Code statique (méthode code/SMS) OU jeton dynamique (méthode qr/lien). */
   code?: string;
+  jeton?: string;
   geoloc?: { lat: number; lng: number; accuracy?: number };
+  /** Consentement explicite à la capture de géolocalisation (requis si geoloc fourni). */
+  consentementGeoloc?: boolean;
   timestampClient?: string;
 }
 
 @Injectable()
 export class EmargementService {
-  private readonly engine = new SignatureEngine();
+  private readonly engine: SignatureEngine;
+  private readonly env = loadEnv();
 
-  constructor(private readonly tenantPrisma: TenantPrismaService) {}
+  constructor(
+    private readonly tenantPrisma: TenantPrismaService,
+    private readonly tsa: TsaService,
+  ) {
+    // Le moteur utilise l'autorité d'horodatage configurée (RFC 3161 si TSA_ENABLED, sinon serveur).
+    this.engine = new SignatureEngine({ timestampAuthority: this.tsa.authority() });
+  }
 
   /** Le formateur (ou l'admin) ouvre la fenêtre de signature et obtient le code à afficher. */
   async ouvrirSignature(creneauId: string, user: AccessClaims): Promise<{ code: string }> {
@@ -41,6 +54,40 @@ export class EmargementService {
         data: { signatureOuverte: true, signatureOuverteAt: new Date(), signatureCode: code },
       });
       return { code };
+    });
+  }
+
+  /**
+   * Génère un jeton de signature anti-fraude (QR dynamique). À usage UNIQUE pour un lien
+   * personnel (`pourUserId`), réutilisable pendant le TTL court pour un QR projeté partagé.
+   * Le formateur le régénère à chaque rotation côté écran.
+   */
+  async genererJeton(
+    creneauId: string,
+    user: AccessClaims,
+    pourUserId?: string,
+  ): Promise<{ token: string; expiresAt: Date; scope: 'partage' | 'apprenant'; url: string }> {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const creneau = await this.loadCreneauForFormateur(tx, creneauId, user);
+      if (!creneau.signatureOuverte) {
+        throw new ConflictException('Ouvrez d\'abord la fenêtre de signature.');
+      }
+      const scope = pourUserId ? 'apprenant' : 'partage';
+      const ttl = scope === 'apprenant' ? this.env.JETON_LIEN_TTL_SECONDS : this.env.JETON_TTL_SECONDS;
+      const token = randomBytes(24).toString('base64url');
+      const expiresAt = new Date(Date.now() + ttl * 1000);
+      await tx.signatureJeton.create({
+        data: {
+          tenantId: user.tid,
+          creneauId,
+          token,
+          scope,
+          expiresAt,
+          ...(pourUserId ? { userId: pourUserId } : {}),
+        },
+      });
+      const url = `${this.env.PUBLIC_BASE_URL}/app/creneaux/${creneauId}/signer?jeton=${token}`;
+      return { token, expiresAt, scope, url };
     });
   }
 
@@ -80,11 +127,21 @@ export class EmargementService {
       const signataire = this.resolveSignataireType(user);
       await this.assertSignataireAutorise(tx, creneau, user, signataire);
 
-      // Méthodes code/qr : le code affiché par le formateur doit correspondre.
-      if (input.methode !== 'manuscrite') {
+      // Validation de la méthode d'apposition (anti-fraude).
+      if (input.methode === 'code') {
+        // Code statique affiché/SMS : doit correspondre au code du créneau.
         if (!input.code || input.code !== creneau.signatureCode) {
           throw new BadRequestException('Code de signature invalide.');
         }
+      } else if (input.methode === 'qr' || input.methode === 'lien') {
+        // Jeton dynamique : TTL court, lié au créneau, usage unique si personnel.
+        await this.consommerJeton(tx, creneauId, user.sub, input.jeton);
+      }
+      // 'manuscrite' : présence physique vérifiée par le formateur, pas de second facteur.
+
+      // Consentement explicite requis pour capturer la géolocalisation (RGPD).
+      if (input.geoloc && !input.consentementGeoloc) {
+        throw new BadRequestException('Consentement à la géolocalisation requis.');
       }
 
       // Idempotence : si déjà signé, renvoie l'émargement existant sans nouvelle preuve.
@@ -139,7 +196,7 @@ export class EmargementService {
           ...(input.timestampClient ? { timestampClient: new Date(input.timestampClient) } : {}),
           ...(meta.ip ? { ip: meta.ip } : {}),
           ...(meta.userAgent ? { userAgent: meta.userAgent } : {}),
-          ...(input.geoloc ? { geoloc: input.geoloc } : {}),
+          ...(input.geoloc ? { geoloc: input.geoloc, consentementGeoloc: true } : {}),
           hashPayload: proof.payloadSha256,
         },
         update: {
@@ -305,6 +362,35 @@ export class EmargementService {
   }
 
   // --- internes ---
+
+  /**
+   * Valide (et consomme si personnel) un jeton de signature anti-fraude.
+   * Vérifie : présence, liaison au créneau, non-expiration ; pour un jeton personnel,
+   * appartenance à l'utilisateur et usage unique. Un jeton partagé (QR projeté) reste
+   * réutilisable pendant son TTL court (rotation côté formateur).
+   */
+  private async consommerJeton(
+    tx: TenantClient,
+    creneauId: string,
+    userId: string,
+    token: string | undefined,
+  ): Promise<void> {
+    if (!token) throw new BadRequestException('Jeton de signature manquant.');
+    const jeton = await tx.signatureJeton.findFirst({ where: { token } });
+    if (!jeton || jeton.creneauId !== creneauId) {
+      throw new BadRequestException('Jeton de signature invalide.');
+    }
+    if (jeton.expiresAt < new Date()) {
+      throw new BadRequestException('Jeton de signature expiré.');
+    }
+    if (jeton.scope === 'apprenant') {
+      if (jeton.userId !== userId) {
+        throw new ForbiddenException('Jeton personnel non valable pour cet utilisateur.');
+      }
+      if (jeton.usedAt) throw new ConflictException('Jeton déjà utilisé.');
+      await tx.signatureJeton.update({ where: { id: jeton.id }, data: { usedAt: new Date() } });
+    }
+  }
 
   private resolveSignataireType(user: AccessClaims): SignataireType {
     if (user.role === 'formateur') return 'formateur';

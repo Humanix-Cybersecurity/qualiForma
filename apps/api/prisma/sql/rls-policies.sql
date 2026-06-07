@@ -89,3 +89,25 @@ GRANT SELECT ON plan TO app;
 -- Privilèges par défaut pour les futures tables (étapes suivantes).
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app;
+
+-- ---------------------------------------------------------------------------
+-- IMMUABILITÉ DES PREUVES (valeur probante) : interdit toute modification ou
+-- suppression a posteriori des enregistrements probants, MÊME pour le propriétaire,
+-- au niveau du SGBD (défense en profondeur au-delà des GRANT, ADR 0003).
+CREATE OR REPLACE FUNCTION refuser_mutation() RETURNS trigger
+  LANGUAGE plpgsql
+AS $$
+BEGIN
+  RAISE EXCEPTION 'Enregistrement immuable (append-only) : % interdit sur %', TG_OP, TG_TABLE_NAME;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS preuve_signature_immuable ON preuve_signature;
+CREATE TRIGGER preuve_signature_immuable
+  BEFORE UPDATE OR DELETE ON preuve_signature
+  FOR EACH ROW EXECUTE FUNCTION refuser_mutation();
+
+DROP TRIGGER IF EXISTS audit_log_immuable ON audit_log;
+CREATE TRIGGER audit_log_immuable
+  BEFORE UPDATE OR DELETE ON audit_log
+  FOR EACH ROW EXECUTE FUNCTION refuser_mutation();

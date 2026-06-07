@@ -6,3 +6,4 @@ export * from './hash';
 export * from './audit-chain';
 export * from './rules';
 export * from './engine';
+export * from './rfc3161';

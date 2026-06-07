@@ -3,7 +3,7 @@
 // Les valeurs littérales sont alignées sur les enums du schéma de données.
 
 export type SignataireType = 'apprenant' | 'formateur';
-export type EmargementMethode = 'code' | 'qr' | 'manuscrite';
+export type EmargementMethode = 'code' | 'qr' | 'manuscrite' | 'lien';
 export type SignatureLevel = 'SES' | 'SEA';
 export type HorodatageType = 'serveur' | 'rfc3161';
 

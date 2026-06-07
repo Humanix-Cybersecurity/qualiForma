@@ -151,12 +151,22 @@ export const api = {
   mesCreneaux(auth: AuthState) {
     return request<Creneau[]>('/me/creneaux', { auth });
   },
-  signer(auth: AuthState, creneauId: string, methode: 'code' | 'manuscrite', code?: string) {
+  signer(
+    auth: AuthState,
+    creneauId: string,
+    body: { methode: 'code' | 'manuscrite' | 'qr' | 'lien'; code?: string; jeton?: string },
+  ) {
     return request<{ verificationToken: string; statut: string }>(`/creneaux/${creneauId}/signer`, {
       method: 'POST',
       auth,
-      body: { methode, ...(code ? { code } : {}) },
+      body,
     });
+  },
+  genererJeton(auth: AuthState, creneauId: string) {
+    return request<{ token: string; expiresAt: string; scope: string; url: string }>(
+      `/creneaux/${creneauId}/jetons`,
+      { method: 'POST', auth, body: {} },
+    );
   },
   ouvrirSignature(auth: AuthState, creneauId: string) {
     return request<{ code: string }>(`/creneaux/${creneauId}/signature/ouvrir`, {
