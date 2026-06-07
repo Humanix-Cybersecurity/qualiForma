@@ -106,6 +106,26 @@ export interface PlanRow {
   maxUsers: number | null;
 }
 
+export interface SessionCompletude {
+  sessionId: string;
+  intitule: string;
+  statut: string;
+  attendus: number;
+  creneaux: {
+    id: string;
+    date: string;
+    periode: 'matin' | 'apres_midi';
+    apprenantsResolus: number;
+    attendus: number;
+    formateurSigne: boolean;
+    scelle: boolean;
+    horodatageQualifie: boolean;
+  }[];
+  alertes: string[];
+  avertissements: string[];
+  pret: boolean;
+}
+
 export interface ReclamationRow {
   id: string;
   objet: string;
@@ -283,6 +303,15 @@ export const api = {
   },
   enroll(auth: AuthState, sessionId: string, apprenantEmail: string) {
     return request<{ id: string }>(`/sessions/${sessionId}/inscriptions`, { method: 'POST', auth, body: { apprenantEmail } });
+  },
+  completude(auth: AuthState, sessionId: string) {
+    return request<SessionCompletude>(`/sessions/${sessionId}/completude`, { auth });
+  },
+  cloturerSession(auth: AuthState, sessionId: string, force = false) {
+    return request<{ sessionId: string; statut: 'terminee'; force: boolean; alertes: string[] }>(
+      `/sessions/${sessionId}/cloture`,
+      { method: 'POST', auth, body: { force } },
+    );
   },
 
   // --- Questionnaires ---

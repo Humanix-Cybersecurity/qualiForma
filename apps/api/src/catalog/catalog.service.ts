@@ -4,6 +4,7 @@ import type { AccessClaims } from '@humanix/domain';
 import { requireTenantContext } from '../tenant/tenant-context';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { QuotasService } from '../quotas/quotas.service';
+import { AuditService } from '../audit/audit.service';
 
 export interface CreateFormationInput {
   intitule: string;
@@ -35,6 +36,7 @@ export class CatalogService {
   constructor(
     private readonly tenantPrisma: TenantPrismaService,
     private readonly quotas: QuotasService,
+    private readonly audit: AuditService,
   ) {}
 
   // --- Écriture (admin OF) ---
@@ -145,6 +147,117 @@ export class CatalogService {
         update: { statut: 'confirmee' },
         select: { id: true },
       });
+    });
+  }
+
+  /**
+   * Rapport de complétude Qualiopi d'une session : détecte les pièces de preuve manquantes
+   * AVANT la clôture (indicateur 11/13 — preuve de réalisation). Bloquant = `pret: false`.
+   *
+   * Règle de clôture : chaque apprenant inscrit (hors abandon/annulation) doit avoir un
+   * émargement RÉSOLU (signé, absent ou refus explicite), le formateur doit avoir co-signé,
+   * et le créneau doit être SCELLÉ avec un horodatage qualifié.
+   */
+  async sessionCompletude(sessionId: string) {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const session = await tx.session.findFirst({
+        where: { id: sessionId },
+        include: {
+          formation: { select: { intitule: true } },
+          creneaux: { orderBy: [{ date: 'asc' }, { periode: 'asc' }] },
+        },
+      });
+      if (!session) throw new NotFoundException('Session introuvable.');
+
+      const attendus = await tx.inscription.count({
+        where: { sessionId, statut: { in: ['prevue', 'confirmee', 'presente'] } },
+      });
+
+      const alertes: string[] = [];
+      const avertissements: string[] = [];
+      if (attendus === 0) alertes.push('Aucun apprenant inscrit à la session.');
+      if (session.creneaux.length === 0) alertes.push('Aucun créneau (demi-journée) planifié.');
+
+      const creneaux = [];
+      for (const c of session.creneaux) {
+        const label = `${c.date.toISOString().slice(0, 10)} (${c.periode})`;
+        const emargements = await tx.emargement.findMany({
+          where: { creneauId: c.id },
+          select: { signataire: true, statut: true },
+        });
+        const apprenantsResolus = emargements.filter(
+          (e) => e.signataire === 'apprenant' && ['signe', 'absent', 'refuse'].includes(e.statut),
+        ).length;
+        const formateurSigne = emargements.some(
+          (e) => e.signataire === 'formateur' && e.statut === 'signe',
+        );
+        const nonResolus = Math.max(0, attendus - apprenantsResolus);
+        const scelle = await tx.scellementCreneau.findFirst({
+          where: { creneauId: c.id },
+          select: { horodatageType: true, niveau: true, createdAt: true },
+        });
+
+        if (nonResolus > 0) {
+          alertes.push(`Créneau ${label} : ${nonResolus} émargement(s) non résolu(s).`);
+        }
+        if (!formateurSigne) {
+          alertes.push(`Créneau ${label} : co-signature formateur manquante.`);
+        }
+        if (!scelle) {
+          alertes.push(`Créneau ${label} : non scellé (horodatage de preuve manquant).`);
+        } else if (scelle.horodatageType !== 'rfc3161') {
+          avertissements.push(
+            `Créneau ${label} : scellé avec un horodatage non qualifié (${scelle.horodatageType}).`,
+          );
+        }
+
+        creneaux.push({
+          id: c.id,
+          date: c.date,
+          periode: c.periode,
+          apprenantsResolus,
+          attendus,
+          formateurSigne,
+          scelle: Boolean(scelle),
+          horodatageQualifie: scelle?.horodatageType === 'rfc3161',
+        });
+      }
+
+      return {
+        sessionId: session.id,
+        intitule: session.intitule ?? session.formation.intitule,
+        statut: session.statut,
+        attendus,
+        creneaux,
+        alertes,
+        avertissements,
+        pret: alertes.length === 0,
+      };
+    });
+  }
+
+  /**
+   * Clôture une session (statut → terminee). Refuse si des preuves manquent (`pret: false`),
+   * sauf si `force` (réservé admin) — l'écart est alors tracé dans l'audit.
+   */
+  async cloturerSession(sessionId: string, user: AccessClaims, force = false) {
+    const rapport = await this.sessionCompletude(sessionId);
+    if (!rapport.pret && !force) {
+      throw new BadRequestException({
+        message: 'Clôture impossible : pièces de preuve manquantes.',
+        alertes: rapport.alertes,
+      });
+    }
+    return this.tenantPrisma.withTenant(async (tx) => {
+      await tx.session.update({ where: { id: sessionId }, data: { statut: 'terminee' } });
+      await this.audit.record(tx, {
+        action: 'session.cloture',
+        entity: 'session',
+        entityId: sessionId,
+        actorUserId: user.sub,
+        payload: { force, alertes: rapport.alertes, avertissements: rapport.avertissements },
+      });
+      return { sessionId, statut: 'terminee' as const, force, alertes: rapport.alertes };
     });
   }
 

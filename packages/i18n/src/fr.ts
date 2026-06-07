@@ -197,6 +197,15 @@ export const fr = {
     feuille: 'Feuille d’émargement',
     decompte: 'Décompte',
   },
+  completude: {
+    verifier: 'Vérifier la clôture',
+    rafraichir: 'Rafraîchir',
+    pret: 'Toutes les pièces de preuve sont présentes : la session peut être clôturée.',
+    manquant: 'Pièces de preuve manquantes pour la clôture Qualiopi :',
+    cloturer: 'Clôturer la session',
+    cloturerForce: 'Clôturer malgré les écarts',
+    cloturee: 'Session clôturée.',
+  },
   documents: {
     title: 'Documents',
     upload: 'Déposer un document',

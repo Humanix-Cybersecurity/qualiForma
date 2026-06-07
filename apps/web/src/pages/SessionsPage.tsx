@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, FileSpreadsheet } from 'lucide-react';
-import { Badge, Button, Card, Spinner } from '@humanix/ui';
+import { CheckCircle2, Download, FileSpreadsheet, ShieldCheck } from 'lucide-react';
+import { Alert, Badge, Button, Card, Spinner } from '@humanix/ui';
 import { useAuth } from '../auth/AuthProvider';
-import { api, downloadFile, type SessionRow } from '../lib/api';
+import { api, downloadFile, type SessionCompletude, type SessionRow } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 
 export function SessionsPage() {
@@ -13,9 +13,10 @@ export function SessionsPage() {
   const [rows, setRows] = useState<SessionRow[] | null>(null);
   const isAdmin = claims?.role === 'admin_of';
 
-  useEffect(() => {
+  function reload() {
     if (auth) api.sessions(auth).then(setRows).catch(() => setRows([]));
-  }, [auth]);
+  }
+  useEffect(reload, [auth]);
 
   return (
     <>
@@ -53,10 +54,99 @@ export function SessionsPage() {
                   ) : null}
                 </div>
               </div>
+              {isAdmin ? <Completude sessionId={s.id} statut={s.statut} onClosed={reload} /> : null}
             </Card>
           ))}
         </ul>
       )}
     </>
+  );
+}
+
+/** Bloc de vérification de complétude Qualiopi + clôture de session (admin). */
+function Completude({ sessionId, statut, onClosed }: { sessionId: string; statut: string; onClosed: () => void }) {
+  const { t } = useTranslation();
+  const { auth } = useAuth();
+  const [data, setData] = useState<SessionCompletude | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const cloturee = statut === 'terminee';
+
+  async function check() {
+    if (!auth) return;
+    setLoading(true);
+    try {
+      setData(await api.completude(auth, sessionId));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function cloturer(force: boolean) {
+    if (!auth) return;
+    setBusy(true);
+    try {
+      await api.cloturerSession(auth, sessionId, force);
+      onClosed();
+    } catch {
+      // En cas d'écart bloquant, on rafraîchit le rapport pour montrer les alertes.
+      await check();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (cloturee) {
+    return (
+      <div className="mt-3 border-t border-slate-100 pt-3">
+        <Alert tone="success">{t('completude.cloturee')}</Alert>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 border-t border-slate-100 pt-3">
+      {!data ? (
+        <Button size="sm" variant="ghost" onPress={check} isDisabled={loading}>
+          <ShieldCheck aria-hidden="true" className="h-4 w-4" />
+          {loading ? t('common.loading') : t('completude.verifier')}
+        </Button>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {data.pret ? (
+            <Alert tone="success">{t('completude.pret')}</Alert>
+          ) : (
+            <Alert tone="error">
+              <p className="font-medium">{t('completude.manquant')}</p>
+              <ul className="mt-1 list-disc pl-5 text-sm">
+                {data.alertes.map((a, i) => <li key={i}>{a}</li>)}
+              </ul>
+            </Alert>
+          )}
+          {data.avertissements.length > 0 ? (
+            <Alert tone="warning">
+              <ul className="list-disc pl-5 text-sm">
+                {data.avertissements.map((a, i) => <li key={i}>{a}</li>)}
+              </ul>
+            </Alert>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {data.pret ? (
+              <Button size="sm" onPress={() => cloturer(false)} isDisabled={busy}>
+                <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
+                {t('completude.cloturer')}
+              </Button>
+            ) : (
+              <Button size="sm" variant="danger" onPress={() => cloturer(true)} isDisabled={busy}>
+                {t('completude.cloturerForce')}
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onPress={check} isDisabled={loading || busy}>
+              {t('completude.rafraichir')}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

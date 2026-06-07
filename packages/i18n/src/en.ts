@@ -200,6 +200,15 @@ export const en: typeof fr = {
     feuille: 'Attendance sheet',
     decompte: 'Statement',
   },
+  completude: {
+    verifier: 'Check before closing',
+    rafraichir: 'Refresh',
+    pret: 'All evidence is present: the session can be closed.',
+    manquant: 'Missing evidence for Qualiopi closing:',
+    cloturer: 'Close session',
+    cloturerForce: 'Close despite gaps',
+    cloturee: 'Session closed.',
+  },
   documents: {
     title: 'Documents',
     upload: 'Upload a document',

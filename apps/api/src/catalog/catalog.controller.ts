@@ -47,6 +47,8 @@ const creneauxSchema = z.object({
 
 const enrollSchema = z.object({ apprenantEmail: z.string().email() });
 
+const clotureSchema = z.object({ force: z.boolean().optional() });
+
 @Controller()
 export class CatalogController {
   constructor(private readonly catalog: CatalogService) {}
@@ -100,6 +102,22 @@ export class CatalogController {
     @Body(new ZodValidationPipe(enrollSchema)) body: { apprenantEmail: string },
   ) {
     return this.catalog.enroll(id, body.apprenantEmail);
+  }
+
+  @Get('sessions/:id/completude')
+  @Auth('admin_of', 'formateur')
+  completude(@Param('id') id: string) {
+    return this.catalog.sessionCompletude(id);
+  }
+
+  @Post('sessions/:id/cloture')
+  @Auth('admin_of')
+  cloturer(
+    @Param('id') id: string,
+    @CurrentUser() user: AccessClaims,
+    @Body(new ZodValidationPipe(clotureSchema)) body: { force?: boolean },
+  ) {
+    return this.catalog.cloturerSession(id, user, body.force ?? false);
   }
 
   @Get('me/inscriptions')
