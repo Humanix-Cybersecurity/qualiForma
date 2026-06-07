@@ -1036,3 +1036,64 @@ model DemandeInscription {
   @@index([tenantId])
   @@map("demande_inscription")
 }
+
+// ============================================================================
+// LMS / e-learning (N8) — modules, leçons, progression
+// ============================================================================
+
+enum LeconType {
+  texte
+  video
+  pdf
+}
+
+/// Module e-learning rattaché à une formation (parcours en ligne).
+model ModuleFormation {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  formationId String   @map("formation_id") @db.Uuid
+  titre       String
+  description String?
+  ordre       Int      @default(0)
+  publie      Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  lecons Lecon[]
+
+  @@index([tenantId])
+  @@index([formationId])
+  @@map("module_formation")
+}
+
+model Lecon {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  moduleId  String    @map("module_id") @db.Uuid
+  titre     String
+  type      LeconType @default(texte)
+  /// Contenu selon le type : texte (markdown/plein texte), video (URL), pdf (URL).
+  contenu   String?
+  ordre     Int       @default(0)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  module       ModuleFormation    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progressions LeconProgression[]
+
+  @@index([tenantId])
+  @@index([moduleId])
+  @@map("lecon")
+}
+
+model LeconProgression {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  leconId     String   @map("lecon_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  completedAt DateTime @default(now()) @map("completed_at")
+
+  lecon Lecon @relation(fields: [leconId], references: [id], onDelete: Cascade)
+
+  @@unique([leconId, userId])
+  @@index([tenantId])
+  @@map("lecon_progression")
+}

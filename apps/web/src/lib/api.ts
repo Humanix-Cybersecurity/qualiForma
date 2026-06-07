@@ -141,6 +141,26 @@ export interface Bpf {
   financeurLabels: Record<string, string>;
 }
 
+export interface LeconAdmin { id: string; titre: string; type: 'texte' | 'video' | 'pdf'; contenu: string | null; ordre: number }
+export interface ModuleAdmin {
+  id: string;
+  formationId: string;
+  titre: string;
+  description: string | null;
+  publie: boolean;
+  lecons: LeconAdmin[];
+  _count: { lecons: number };
+}
+export interface MonModule {
+  id: string;
+  titre: string;
+  description: string | null;
+  total: number;
+  faits: number;
+  progression: number;
+  lecons: { id: string; titre: string; type: 'texte' | 'video' | 'pdf'; contenu: string | null; fait: boolean }[];
+}
+
 export interface PublicCatalogue {
   organisme: string;
   formations: {
@@ -611,6 +631,32 @@ export const api = {
   },
   runPurge(auth: AuthState) {
     return request<{ emargements: number; scellements: number; audit: number }>('/admin/jobs/purger', { method: 'POST', auth });
+  },
+
+  // --- LMS / e-learning ---
+  modules(auth: AuthState, formationId?: string) {
+    return request<ModuleAdmin[]>(`/modules${formationId ? `?formationId=${formationId}` : ''}`, { auth });
+  },
+  createModule(auth: AuthState, body: { formationId: string; titre: string; description?: string; publie?: boolean }) {
+    return request<{ id: string }>('/modules', { method: 'POST', auth, body });
+  },
+  updateModule(auth: AuthState, id: string, body: { titre?: string; description?: string; publie?: boolean }) {
+    return request<{ id: string }>(`/modules/${id}`, { method: 'PATCH', auth, body });
+  },
+  deleteModule(auth: AuthState, id: string) {
+    return request<{ id: string }>(`/modules/${id}`, { method: 'DELETE', auth });
+  },
+  addLecon(auth: AuthState, moduleId: string, body: { titre: string; type: 'texte' | 'video' | 'pdf'; contenu?: string }) {
+    return request<{ id: string }>(`/modules/${moduleId}/lecons`, { method: 'POST', auth, body });
+  },
+  deleteLecon(auth: AuthState, id: string) {
+    return request<{ id: string }>(`/lecons/${id}`, { method: 'DELETE', auth });
+  },
+  mesModules(auth: AuthState) {
+    return request<MonModule[]>('/me/modules', { auth });
+  },
+  marquerLecon(auth: AuthState, leconId: string, fait: boolean) {
+    return request<{ leconId: string; fait: boolean }>(`/lecons/${leconId}/progression`, { method: 'POST', auth, body: { fait } });
   },
 
   // --- Public (catalogue & préinscription, sans authentification) ---

@@ -10,6 +10,7 @@ import {
   ClipboardList,
   CreditCard,
   FolderClosed,
+  GraduationCap,
   LayoutDashboard,
   FileSignature,
   MessageSquareWarning,
@@ -36,6 +37,7 @@ export function navForRole(role: Claims['role']): NavItem[] {
       return [
         DASHBOARD,
         { to: '/app/creneaux', labelKey: 'creneaux', icon: CalendarCheck },
+        { to: '/app/mes-cours', labelKey: 'mescours', icon: GraduationCap },
         { to: '/app/questionnaires', labelKey: 'questionnaires', icon: ClipboardList },
         { to: '/app/attestations', labelKey: 'attestations', icon: Award },
         { to: '/app/reclamations', labelKey: 'reclamations', icon: MessageSquareWarning },
@@ -52,6 +54,7 @@ export function navForRole(role: Claims['role']): NavItem[] {
       return [
         DASHBOARD,
         { to: '/app/formations', labelKey: 'formations', icon: BookOpen },
+        { to: '/app/cours', labelKey: 'cours', icon: GraduationCap },
         { to: '/app/sessions', labelKey: 'sessions', icon: CalendarCheck },
         { to: '/app/planning', labelKey: 'planning', icon: CalendarDays },
         { to: '/app/demandes', labelKey: 'demandes', icon: Inbox },
