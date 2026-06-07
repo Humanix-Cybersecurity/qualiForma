@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+.vite/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Prisma
+prisma/*.db
+
+# Tests / coverage
+coverage/
+playwright-report/
+test-results/
+
+# Capacitor native
+apps/web/ios/
+apps/web/android/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Artefacts générés
+docs/sbom/*.json
