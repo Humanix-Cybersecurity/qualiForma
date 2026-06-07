@@ -25,6 +25,7 @@ import { FacturationModule } from './facturation/facturation.module';
 import { DevisModule } from './devis/devis.module';
 import { QualiopiModule } from './qualiopi/qualiopi.module';
 import { PublicModule } from './public/public.module';
+import { AgendaModule } from './agenda/agenda.module';
 import { JobsModule } from './jobs/jobs.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { QuotasModule } from './quotas/quotas.module';
@@ -61,6 +62,7 @@ import { HealthController } from './health/health.controller';
     DevisModule,
     QualiopiModule,
     PublicModule,
+    AgendaModule,
     JobsModule,
     MetricsModule,
     QuotasModule,

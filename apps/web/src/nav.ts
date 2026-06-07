@@ -4,6 +4,7 @@ import {
   BookOpen,
   Building2,
   CalendarCheck,
+  CalendarDays,
   Inbox,
   ClipboardCheck,
   ClipboardList,
@@ -43,6 +44,7 @@ export function navForRole(role: Claims['role']): NavItem[] {
       return [
         DASHBOARD,
         { to: '/app/creneaux', labelKey: 'creneaux', icon: CalendarCheck },
+        { to: '/app/planning', labelKey: 'planning', icon: CalendarDays },
         { to: '/app/sessions', labelKey: 'sessions', icon: CalendarCheck },
         { to: '/app/reclamations', labelKey: 'reclamations', icon: MessageSquareWarning },
       ];
@@ -51,6 +53,7 @@ export function navForRole(role: Claims['role']): NavItem[] {
         DASHBOARD,
         { to: '/app/formations', labelKey: 'formations', icon: BookOpen },
         { to: '/app/sessions', labelKey: 'sessions', icon: CalendarCheck },
+        { to: '/app/planning', labelKey: 'planning', icon: CalendarDays },
         { to: '/app/demandes', labelKey: 'demandes', icon: Inbox },
         { to: '/app/conventions', labelKey: 'conventions', icon: ScrollText },
         { to: '/app/devis', labelKey: 'devis', icon: FileSignature },

@@ -168,6 +168,27 @@ export interface DemandeRow {
   createdAt: string;
 }
 
+export interface AgendaItem {
+  id: string;
+  date: string;
+  periode: 'matin' | 'apres_midi';
+  heureDebut: string;
+  heureFin: string;
+  lieu: string | null;
+  visioUrl: string | null;
+  sessionId: string;
+  formation: string;
+  formateur: string | null;
+  signatureOuverte: boolean;
+  conflits: { type: 'formateur' | 'lieu'; avecCreneauId: string }[];
+}
+export interface AgendaResult {
+  from: string;
+  to: string;
+  items: AgendaItem[];
+  nbConflits: number;
+}
+
 export interface QualiopiIndicateur {
   numero: number;
   critere: number;
@@ -622,6 +643,12 @@ export const api = {
     body: { statut?: 'conforme' | 'a_completer' | 'non_applicable'; notes?: string | null; documentId?: string | null },
   ) {
     return request<{ numero: number; statut: string }>(`/qualiopi/indicateurs/${numero}`, { method: 'PUT', auth, body });
+  },
+
+  // --- Planning / agenda ---
+  agenda(auth: AuthState, from: string, to: string, formateurId?: string) {
+    const q = new URLSearchParams({ from, to, ...(formateurId ? { formateurId } : {}) }).toString();
+    return request<AgendaResult>(`/agenda?${q}`, { auth });
   },
 
   // --- Pilotage / statistiques ---
