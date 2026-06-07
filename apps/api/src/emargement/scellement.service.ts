@@ -7,6 +7,7 @@ import { AuditService } from '../audit/audit.service';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { TsaService } from '../signature/tsa.service';
 import { MetricsService } from '../metrics/metrics.service';
+import { WebhookService } from '../apipub/webhook.service';
 
 /**
  * Scellement CONSOLIDÉ d'un créneau (séquence/demi-journée).
@@ -23,6 +24,7 @@ export class ScellementService {
     private readonly tsa: TsaService,
     private readonly audit: AuditService,
     private readonly metrics: MetricsService,
+    private readonly webhooks: WebhookService,
   ) {}
 
   async sceller(creneauId: string, user: AccessClaims) {
@@ -103,6 +105,15 @@ export class ScellementService {
       });
 
       this.metrics.scellements.inc({ niveau, horodatage: stamp.type });
+      // Événement webhook (best-effort, hors transaction critique).
+      this.webhooks.emit('scellement.created', {
+        creneauId,
+        scellementId: scellement.id,
+        consolidatedSha256,
+        niveau,
+        horodatage: stamp.type,
+        verificationToken: scellement.verificationToken,
+      });
 
       return {
         id: scellement.id,

@@ -27,6 +27,7 @@ import { QualiopiModule } from './qualiopi/qualiopi.module';
 import { PublicModule } from './public/public.module';
 import { AgendaModule } from './agenda/agenda.module';
 import { LmsModule } from './lms/lms.module';
+import { ApiPubModule } from './apipub/apipub.module';
 import { JobsModule } from './jobs/jobs.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { QuotasModule } from './quotas/quotas.module';
@@ -65,6 +66,7 @@ import { HealthController } from './health/health.controller';
     PublicModule,
     AgendaModule,
     LmsModule,
+    ApiPubModule,
     JobsModule,
     MetricsModule,
     QuotasModule,
@@ -73,10 +75,11 @@ import { HealthController } from './health/health.controller';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    // Le contexte tenant est requis partout SAUF la sonde de santé et l'exposition métriques.
+    // Le contexte tenant est requis partout SAUF la sonde de santé, les métriques et l'API
+    // publique v1 (authentifiée par clé d'API, qui résout elle-même le tenant via ApiKeyMiddleware).
     consumer
       .apply(TenantMiddleware)
-      .exclude('health', 'metrics')
+      .exclude('health', 'metrics', 'api/v1/(.*)')
       .forRoutes('*');
   }
 }

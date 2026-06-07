@@ -25,6 +25,7 @@ import { DemandesPage } from './pages/DemandesPage';
 import { PlanningPage } from './pages/PlanningPage';
 import { CoursAdminPage } from './pages/CoursAdminPage';
 import { MesCoursPage } from './pages/MesCoursPage';
+import { IntegrationsPage } from './pages/IntegrationsPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { AdminTenantsPage } from './pages/AdminTenantsPage';
 import { AdminPlansPage } from './pages/AdminPlansPage';
@@ -77,6 +78,7 @@ export function App() {
           <Route path="attestations" element={<RoleRoute roles={['apprenant']}><AttestationsPage /></RoleRoute>} />
           <Route path="mes-cours" element={<RoleRoute roles={['apprenant']}><MesCoursPage /></RoleRoute>} />
           <Route path="cours" element={<RoleRoute roles={['admin_of', 'formateur']}><CoursAdminPage /></RoleRoute>} />
+          <Route path="integrations" element={<RoleRoute roles={['admin_of']}><IntegrationsPage /></RoleRoute>} />
           <Route path="formations" element={<RoleRoute roles={['admin_of', 'formateur']}><FormationsPage /></RoleRoute>} />
           <Route path="sessions" element={<RoleRoute roles={['admin_of', 'formateur']}><SessionsPage /></RoleRoute>} />
           <Route path="planning" element={<RoleRoute roles={['admin_of', 'formateur']}><PlanningPage /></RoleRoute>} />

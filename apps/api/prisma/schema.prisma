@@ -1097,3 +1097,38 @@ model LeconProgression {
   @@index([tenantId])
   @@map("lecon_progression")
 }
+
+// ============================================================================
+// API publique & webhooks (N10)
+// ============================================================================
+
+/// Clé d'API (lecture) d'un tenant. Le secret n'est stocké que haché (SHA-256).
+/// La clé exposée a la forme `hmx_<slug>_<secret>` : le slug permet de résoudre le tenant
+/// AVANT lecture sous RLS (aucun client privilégié, aucune table globale).
+model ApiKey {
+  id         String    @id @default(uuid()) @db.Uuid
+  tenantId   String    @map("tenant_id") @db.Uuid
+  nom        String
+  prefix     String // début de clé pour affichage (ex. hmx_demo_AbCd…)
+  keyHash    String    @unique @map("key_hash")
+  lastUsedAt DateTime? @map("last_used_at")
+  revokedAt  DateTime? @map("revoked_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@map("api_key")
+}
+
+/// Endpoint webhook : reçoit les événements (scellement de preuve) signés HMAC-SHA256.
+model WebhookEndpoint {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  url       String
+  secret    String // utilisé pour signer le payload (en-tête X-Humanix-Signature)
+  events    String[] // ex. ["scellement.created"]
+  actif     Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@map("webhook_endpoint")
+}

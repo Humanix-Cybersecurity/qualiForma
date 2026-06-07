@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   FileSignature,
   MessageSquareWarning,
+  Plug,
   Receipt,
   ScrollText,
   Users,
@@ -66,6 +67,7 @@ export function navForRole(role: Claims['role']): NavItem[] {
         { to: '/app/qualiopi', labelKey: 'qualiopi', icon: ClipboardCheck },
         { to: '/app/documents', labelKey: 'documents', icon: FolderClosed },
         { to: '/app/reclamations', labelKey: 'reclamations', icon: MessageSquareWarning },
+        { to: '/app/integrations', labelKey: 'integrations', icon: Plug },
       ];
     case 'super_admin':
       return [

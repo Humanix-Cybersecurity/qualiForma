@@ -229,6 +229,22 @@ export interface QualiopiDashboard {
   total: number;
 }
 
+export interface ApiKeyRow {
+  id: string;
+  nom: string;
+  prefix: string;
+  lastUsedAt?: string | null;
+  revokedAt?: string | null;
+  createdAt: string;
+}
+export interface WebhookRow {
+  id: string;
+  url: string;
+  events: string[];
+  actif: boolean;
+  createdAt?: string;
+}
+
 export interface DashboardStats {
   formationsActives: number;
   sessionsTotal: number;
@@ -695,6 +711,26 @@ export const api = {
   agenda(auth: AuthState, from: string, to: string, formateurId?: string) {
     const q = new URLSearchParams({ from, to, ...(formateurId ? { formateurId } : {}) }).toString();
     return request<AgendaResult>(`/agenda?${q}`, { auth });
+  },
+
+  // --- API publique & webhooks (intégrations) ---
+  apiKeys(auth: AuthState) {
+    return request<ApiKeyRow[]>('/admin/api-keys', { auth });
+  },
+  createApiKey(auth: AuthState, nom: string) {
+    return request<ApiKeyRow & { key: string }>('/admin/api-keys', { method: 'POST', auth, body: { nom } });
+  },
+  revokeApiKey(auth: AuthState, id: string) {
+    return request<{ id: string; revoked: boolean }>(`/admin/api-keys/${id}`, { method: 'DELETE', auth });
+  },
+  webhooks(auth: AuthState) {
+    return request<WebhookRow[]>('/admin/webhooks', { auth });
+  },
+  createWebhook(auth: AuthState, body: { url: string; events: string[] }) {
+    return request<WebhookRow & { secret: string }>('/admin/webhooks', { method: 'POST', auth, body });
+  },
+  deleteWebhook(auth: AuthState, id: string) {
+    return request<{ id: string; deleted: boolean }>(`/admin/webhooks/${id}`, { method: 'DELETE', auth });
   },
 
   // --- Pilotage / statistiques ---
