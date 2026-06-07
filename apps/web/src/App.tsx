@@ -7,6 +7,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { CreneauxPage } from './pages/CreneauxPage';
 import { SignerPage } from './pages/SignerPage';
 import { VerificationPage } from './pages/VerificationPage';
+import { AccessibilitePage } from './pages/AccessibilitePage';
 import type { JSX } from 'react';
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -24,6 +25,7 @@ export function App() {
       <main id="contenu" className="mx-auto max-w-2xl p-4">
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/accessibilite" element={<AccessibilitePage />} />
           <Route path="/verification/:token" element={<VerificationPage />} />
           <Route
             path="/"
@@ -52,6 +54,11 @@ export function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      <footer className="mx-auto max-w-2xl border-t border-slate-200 p-4 text-sm">
+        <a href="/accessibilite" className="text-blue-700 underline underline-offset-2">
+          {t('a11y.link')}
+        </a>
+      </footer>
     </>
   );
 }

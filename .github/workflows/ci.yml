@@ -45,7 +45,7 @@ jobs:
       - run: pnpm test:isolation
 
   a11y:
-    # Gate accessibilité bloquant (ADR 0004) : axe 0 critique, Lighthouse a11y >= 95
+    # Gate accessibilité bloquant (ADR 0004) : axe 0 critique/sérieux + Lighthouse a11y >= 95.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +53,18 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      # 1) Gate axe-core sur les écrans + design system (bloquant).
       - run: pnpm test:a11y
+      # 2) Build du front pour les vérifs navigateur.
+      - run: pnpm --filter @humanix/web build
+      # 3) Lighthouse a11y >= 95 sur le build statique (bloquant via lighthouserc.json).
+      - run: npx --yes @lhci/cli@0.14.x autorun --config=apps/web/lighthouserc.json
+      # 4) pa11y-ci (WCAG2AA) sur les écrans servis.
+      - name: pa11y-ci
+        run: |
+          pnpm --filter @humanix/web preview --port 4173 &
+          npx --yes wait-on http://localhost:4173/login
+          npx --yes pa11y-ci --config apps/web/.pa11yci
 
   security:
     # SAST, audit deps (OSV/npm), secret scanning, SBOM, scan image — gate sécurité (§12)

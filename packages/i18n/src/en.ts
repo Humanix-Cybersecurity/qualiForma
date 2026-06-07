@@ -69,4 +69,18 @@ export const en: typeof fr = {
     signedAt: 'Signed on',
     level: 'Signature level',
   },
+  a11y: {
+    title: 'Accessibility statement',
+    intro:
+      'Humanix is committed to making its platform accessible in line with RGAA 4.1 (WCAG 2.1 level AA).',
+    statusLabel: 'Compliance status',
+    status: 'Partially compliant — continuous improvement in progress.',
+    measuresLabel: 'Measures in place',
+    measures:
+      'Keyboard navigation, visible focus, AA contrast, text alternatives, reduced-motion preference, automated axe-core tests in continuous integration.',
+    contactLabel: 'Feedback and contact',
+    contact:
+      'To report an accessibility issue: accessibilite@humanix.example.',
+    link: 'Accessibility',
+  },
 };

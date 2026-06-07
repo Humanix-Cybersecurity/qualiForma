@@ -66,4 +66,18 @@ export const fr = {
     signedAt: 'Signé le',
     level: 'Niveau de signature',
   },
+  a11y: {
+    title: 'Déclaration d’accessibilité',
+    intro:
+      'Humanix s’engage à rendre sa plateforme accessible conformément au RGAA 4.1 (WCAG 2.1 niveau AA).',
+    statusLabel: 'État de conformité',
+    status: 'Partiellement conforme — démarche d’amélioration continue en cours.',
+    measuresLabel: 'Moyens mis en œuvre',
+    measures:
+      'Navigation clavier, focus visible, contrastes AA, alternatives textuelles, respect des préférences (réduction des animations), tests automatisés axe-core en intégration continue.',
+    contactLabel: 'Retour d’information et contact',
+    contact:
+      'Pour signaler un défaut d’accessibilité : accessibilite@humanix.example. Vous pouvez saisir le Défenseur des droits si nécessaire.',
+    link: 'Accessibilité',
+  },
 };
