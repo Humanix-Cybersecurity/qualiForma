@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, type AuthState, type Claims } from '../lib/api';
 import { storage } from '../lib/storage';
+import { flushQueue } from '../lib/offline';
 
 interface AuthContextValue {
   auth: AuthState | null;
@@ -33,6 +34,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         storage.remove(STORAGE_KEY);
         setAuth(null);
       });
+  }, [auth]);
+
+  // Synchronise la file d'émargement hors-ligne au montage puis à chaque reconnexion réseau.
+  useEffect(() => {
+    if (!auth) return;
+    const flush = () => {
+      void flushQueue((item) => api.signer(auth, item.creneauId, item.body).then(() => undefined));
+    };
+    flush();
+    window.addEventListener('online', flush);
+    return () => window.removeEventListener('online', flush);
   }, [auth]);
 
   const value = useMemo<AuthContextValue>(

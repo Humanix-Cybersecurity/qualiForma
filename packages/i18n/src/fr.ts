@@ -152,6 +152,7 @@ export const fr = {
     clear: 'Effacer',
     success: 'Émargement enregistré.',
     verifyLink: 'Lien de vérification',
+    queued: 'Vous êtes hors ligne : votre émargement est enregistré sur cet appareil et sera transmis automatiquement dès le retour de la connexion.',
   },
   questionnaires: {
     title: 'Questionnaires',

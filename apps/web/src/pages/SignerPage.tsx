@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { api, API_URL } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 import { SignaturePad } from '../components/SignaturePad';
+import { enqueueSign, isNetworkError } from '../lib/offline';
 
 export function SignerPage() {
   const { t } = useTranslation();
@@ -20,6 +21,7 @@ export function SignerPage() {
   const [hasDrawing, setHasDrawing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [queued, setQueued] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Désactive la soumission tant que la condition de la méthode n'est pas remplie.
@@ -31,18 +33,38 @@ export function SignerPage() {
     if (!auth) return;
     setError(null);
     setLoading(true);
+    // Jeton dynamique (QR/lien) prioritaire ; sinon code / manuscrite.
+    const body = jeton
+      ? ({ methode: 'qr', jeton } as const)
+      : ({ methode, ...(methode === 'code' ? { code } : {}) } as const);
     try {
-      // Jeton dynamique (QR/lien) prioritaire ; sinon code / manuscrite.
-      const body = jeton
-        ? ({ methode: 'qr', jeton } as const)
-        : ({ methode, ...(methode === 'code' ? { code } : {}) } as const);
       const res = await api.signer(auth, id, body);
       setToken(res.verificationToken);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('common.error'));
+      // Hors-ligne : on met en file et on synchronisera à la reconnexion (ADR 0005).
+      if (isNetworkError(err)) {
+        await enqueueSign({ creneauId: id, body, ts: new Date().toISOString() });
+        setQueued(true);
+      } else {
+        setError(err instanceof Error ? err.message : t('common.error'));
+      }
     } finally {
       setLoading(false);
     }
+  }
+
+  if (queued) {
+    return (
+      <>
+        <PageHeader title={t('sign.title')} />
+        <Card>
+          <Alert tone="info">{t('sign.queued')}</Alert>
+          <Link to="/app/creneaux" className="mt-4 inline-block text-brand-700 underline underline-offset-2">
+            {t('common.back')}
+          </Link>
+        </Card>
+      </>
+    );
   }
 
   if (token) {

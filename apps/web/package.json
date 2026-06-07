@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src --max-warnings 0",
-    "test:a11y": "vitest run"
+    "test:a11y": "vitest run",
+    "cap:sync": "cap sync"
   },
   "dependencies": {
     "@humanix/i18n": "workspace:*",
@@ -22,7 +23,10 @@
     "react-dom": "^18.3.1",
     "react-i18next": "^15.1.0",
     "react-router-dom": "^6.27.0",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "idb": "^8.0.0",
+    "@capacitor/ios": "^6.1.2",
+    "@capacitor/android": "^6.1.2"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.1.2",

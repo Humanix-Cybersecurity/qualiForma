@@ -155,6 +155,7 @@ export const en: typeof fr = {
     clear: 'Clear',
     success: 'Attendance recorded.',
     verifyLink: 'Verification link',
+    queued: 'You are offline: your attendance has been saved on this device and will be submitted automatically once the connection is back.',
   },
   questionnaires: {
     title: 'Questionnaires',
