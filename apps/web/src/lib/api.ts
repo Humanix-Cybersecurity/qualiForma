@@ -106,6 +106,16 @@ export interface PlanRow {
   maxUsers: number | null;
 }
 
+export interface ConventionRow {
+  id: string;
+  numero: string;
+  statut: string;
+  montantCents: number | null;
+  entreprise: string | null;
+  formation: string | null;
+  sessionId: string | null;
+}
+
 export interface CreneauRow {
   id: string;
   date: string;
@@ -483,6 +493,28 @@ export const api = {
   },
   runPurge(auth: AuthState) {
     return request<{ emargements: number; scellements: number; audit: number }>('/admin/jobs/purger', { method: 'POST', auth });
+  },
+
+  // --- Conventions ---
+  conventions(auth: AuthState) {
+    return request<ConventionRow[]>('/conventions', { auth });
+  },
+  entreprises(auth: AuthState) {
+    return request<{ id: string; raisonSociale: string; siret: string | null }[]>('/conventions/entreprises', { auth });
+  },
+  createConvention(
+    auth: AuthState,
+    body: {
+      sessionId: string;
+      entrepriseId?: string;
+      entreprise?: { raisonSociale: string; siret?: string; adresse?: string; contactEmail?: string; contactNom?: string };
+      montantCents?: number;
+    },
+  ) {
+    return request<{ id: string; numero: string; statut: string }>('/conventions', { method: 'POST', auth, body });
+  },
+  setConventionStatut(auth: AuthState, id: string, statut: 'brouillon' | 'envoyee' | 'signee' | 'annulee') {
+    return request<{ id: string; statut: string }>(`/conventions/${id}/statut`, { method: 'PATCH', auth, body: { statut } });
   },
 
   // --- Réclamations / amélioration continue ---

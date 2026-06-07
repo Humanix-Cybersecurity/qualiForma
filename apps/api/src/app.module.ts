@@ -19,6 +19,7 @@ import { ProfileModule } from './profile/profile.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { ReclamationsModule } from './reclamations/reclamations.module';
 import { UsersModule } from './users/users.module';
+import { ConventionsModule } from './conventions/conventions.module';
 import { JobsModule } from './jobs/jobs.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { QuotasModule } from './quotas/quotas.module';
@@ -49,6 +50,7 @@ import { HealthController } from './health/health.controller';
     CatalogModule,
     ReclamationsModule,
     UsersModule,
+    ConventionsModule,
     JobsModule,
     MetricsModule,
     QuotasModule,
