@@ -162,6 +162,13 @@ export const fr = {
     sessionsCount: '{{count}} session(s)',
     active: 'Active',
     inactive: 'Inactive',
+    create: 'Nouvelle formation',
+    intitule: 'Intitulé',
+    dureeHeures: 'Durée (heures)',
+    objectifs: 'Objectifs',
+    created: 'Formation créée.',
+    programme: 'Programme (PDF)',
+    reglement: 'Règlement intérieur',
   },
   sessions: {
     title: 'Sessions',

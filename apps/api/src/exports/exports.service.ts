@@ -4,8 +4,12 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import ExcelJS from 'exceljs';
 import {
   renderCertificat,
+  renderConvention,
+  renderConvocation,
   renderDecompte,
   renderFeuilleEmargement,
+  renderProgramme,
+  renderReglementInterieur,
   type CreneauBloc,
   type DecompteLigneData,
 } from '@humanix/pdf-templates';
@@ -177,6 +181,87 @@ export class ExportsService {
         generatedAt: new Date().toISOString(),
       });
       return { buffer: Buffer.from(bytes), filename: `decompte-${sessionId}.pdf`, contentType: PDF };
+    });
+  }
+
+  // --- Documents Qualiopi ---
+
+  async programme(formationId: string): Promise<ExportFile> {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const f = await tx.formation.findFirst({ where: { id: formationId } });
+      if (!f) throw new NotFoundException('Formation introuvable.');
+      const tenant = await tx.tenant.findFirst();
+      const bytes = await renderProgramme({
+        organisme: { nom: tenant?.name ?? 'Organisme' },
+        formationIntitule: f.intitule,
+        ...(f.objectifs ? { objectifs: f.objectifs } : {}),
+        ...(f.prerequis ? { prerequis: f.prerequis } : {}),
+        dureeHeures: Number(f.dureeHeures),
+        ...(f.modalitesAccesHandicap ? { modalitesAccesHandicap: f.modalitesAccesHandicap } : {}),
+        generatedAt: new Date().toISOString(),
+      });
+      return { buffer: Buffer.from(bytes), filename: `programme-${formationId}.pdf`, contentType: PDF };
+    });
+  }
+
+  async reglementInterieur(): Promise<ExportFile> {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const tenant = await tx.tenant.findFirst();
+      const bytes = await renderReglementInterieur({
+        organisme: { nom: tenant?.name ?? 'Organisme' },
+        generatedAt: new Date().toISOString(),
+      });
+      return { buffer: Buffer.from(bytes), filename: 'reglement-interieur.pdf', contentType: PDF };
+    });
+  }
+
+  async convocation(inscriptionId: string): Promise<ExportFile> {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const ins = await tx.inscription.findFirst({
+        where: { id: inscriptionId },
+        include: { apprenant: true, session: { include: { formation: true } } },
+      });
+      if (!ins) throw new NotFoundException('Inscription introuvable.');
+      const tenant = await tx.tenant.findFirst();
+      const bytes = await renderConvocation({
+        organisme: { nom: tenant?.name ?? 'Organisme' },
+        apprenantNom: userName(ins.apprenant),
+        formationIntitule: ins.session.formation.intitule,
+        dateDebut: ins.session.dateDebut.toISOString().slice(0, 10),
+        dateFin: ins.session.dateFin.toISOString().slice(0, 10),
+        ...(ins.session.lieu ? { lieu: ins.session.lieu } : {}),
+        generatedAt: new Date().toISOString(),
+      });
+      return { buffer: Buffer.from(bytes), filename: `convocation-${inscriptionId}.pdf`, contentType: PDF };
+    });
+  }
+
+  async convention(conventionId: string): Promise<ExportFile> {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const conv = await tx.convention.findFirst({
+        where: { id: conventionId },
+        include: { entreprise: true, session: { include: { formation: true } } },
+      });
+      if (!conv || !conv.session) throw new NotFoundException('Convention/session introuvable.');
+      const tenant = await tx.tenant.findFirst();
+      const inscriptions = await tx.inscription.findMany({
+        where: { sessionId: conv.sessionId ?? '', statut: { not: 'annulee' } },
+        include: { apprenant: true },
+      });
+      const bytes = await renderConvention({
+        organisme: { nom: tenant?.name ?? 'Organisme' },
+        numero: conv.numero,
+        ...(conv.entreprise ? { entreprise: conv.entreprise.raisonSociale } : {}),
+        formationIntitule: conv.session.formation.intitule,
+        ...(conv.session.formation.objectifs ? { objectifs: conv.session.formation.objectifs } : {}),
+        dateDebut: conv.session.dateDebut.toISOString().slice(0, 10),
+        dateFin: conv.session.dateFin.toISOString().slice(0, 10),
+        dureeHeures: Number(conv.session.formation.dureeHeures),
+        ...(conv.montantCents != null ? { montantCents: conv.montantCents } : {}),
+        apprenants: inscriptions.map((i) => userName(i.apprenant)),
+        generatedAt: new Date().toISOString(),
+      });
+      return { buffer: Buffer.from(bytes), filename: `convention-${conv.numero}.pdf`, contentType: PDF };
     });
   }
 

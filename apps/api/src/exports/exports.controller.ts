@@ -22,6 +22,30 @@ export class ExportsController {
     send(res, await this.exports.certificat(id));
   }
 
+  @Get('formations/:id/programme.pdf')
+  @Auth('admin_of', 'formateur')
+  async programme(@Param('id') id: string, @Res() res: Response) {
+    send(res, await this.exports.programme(id));
+  }
+
+  @Get('reglement-interieur.pdf')
+  @Auth('admin_of', 'formateur')
+  async reglement(@Res() res: Response) {
+    send(res, await this.exports.reglementInterieur());
+  }
+
+  @Get('inscriptions/:id/convocation.pdf')
+  @Auth('admin_of', 'formateur')
+  async convocation(@Param('id') id: string, @Res() res: Response) {
+    send(res, await this.exports.convocation(id));
+  }
+
+  @Get('conventions/:id/convention.pdf')
+  @Auth('admin_of')
+  async convention(@Param('id') id: string, @Res() res: Response) {
+    send(res, await this.exports.convention(id));
+  }
+
   /** Attestation de l'apprenant courant (contrôle de propriété). */
   @Get('me/certificat/:inscriptionId')
   @Auth('apprenant')

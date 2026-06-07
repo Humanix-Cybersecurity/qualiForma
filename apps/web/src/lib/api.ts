@@ -220,6 +220,28 @@ export const api = {
   myInscriptions(auth: AuthState) {
     return request<InscriptionRow[]>('/me/inscriptions', { auth });
   },
+  createFormation(
+    auth: AuthState,
+    body: { intitule: string; dureeHeures: number; objectifs?: string; prerequis?: string; modalitesAccesHandicap?: string },
+  ) {
+    return request<{ id: string }>('/formations', { method: 'POST', auth, body });
+  },
+  createSession(
+    auth: AuthState,
+    body: { formationId: string; dateDebut: string; dateFin: string; intitule?: string; lieu?: string },
+  ) {
+    return request<{ id: string }>('/sessions', { method: 'POST', auth, body });
+  },
+  addCreneaux(
+    auth: AuthState,
+    sessionId: string,
+    creneaux: { date: string; periode: 'matin' | 'apres_midi'; heureDebut: string; heureFin: string }[],
+  ) {
+    return request<{ id: string }[]>(`/sessions/${sessionId}/creneaux`, { method: 'POST', auth, body: { creneaux } });
+  },
+  enroll(auth: AuthState, sessionId: string, apprenantEmail: string) {
+    return request<{ id: string }>(`/sessions/${sessionId}/inscriptions`, { method: 'POST', auth, body: { apprenantEmail } });
+  },
 
   // --- Questionnaires ---
   questionnairesMine(auth: AuthState) {

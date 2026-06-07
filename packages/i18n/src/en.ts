@@ -165,6 +165,13 @@ export const en: typeof fr = {
     sessionsCount: '{{count}} session(s)',
     active: 'Active',
     inactive: 'Inactive',
+    create: 'New course',
+    intitule: 'Title',
+    dureeHeures: 'Duration (hours)',
+    objectifs: 'Objectives',
+    created: 'Course created.',
+    programme: 'Programme (PDF)',
+    reglement: 'Internal rules',
   },
   sessions: {
     title: 'Sessions',
