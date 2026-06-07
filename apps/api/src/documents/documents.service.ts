@@ -51,6 +51,44 @@ export class DocumentsService {
     @Inject(FILE_SCANNER) private readonly scanner: FileScanner,
   ) {}
 
+  /** Liste les documents sains du tenant (métadonnées uniquement). */
+  async list(filter?: { scope?: DocumentScope; sessionId?: string; formationId?: string }) {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const docs = await tx.document.findMany({
+        where: {
+          scanStatus: 'clean',
+          ...(filter?.scope ? { scope: filter.scope } : {}),
+          ...(filter?.sessionId ? { sessionId: filter.sessionId } : {}),
+          ...(filter?.formationId ? { formationId: filter.formationId } : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          type: true,
+          scope: true,
+          nomFichier: true,
+          mimeType: true,
+          tailleOctets: true,
+          createdAt: true,
+        },
+      });
+      return docs.map((d) => ({ ...d, tailleOctets: Number(d.tailleOctets) }));
+    });
+  }
+
+  /** Récupère le flux d'un document sain pour téléchargement (vérifie l'appartenance tenant via RLS). */
+  async getForDownload(id: string) {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const doc = await tx.document.findFirst({
+        where: { id, scanStatus: 'clean' },
+        select: { objectKey: true, nomFichier: true, mimeType: true },
+      });
+      if (!doc) throw new BadRequestException('Document introuvable ou non disponible.');
+      const stream = await this.storage.getStream(doc.objectKey);
+      return { stream, nomFichier: doc.nomFichier, mimeType: doc.mimeType };
+    });
+  }
+
   async upload(input: UploadInput) {
     const { tenantId } = requireTenantContext();
 

@@ -106,6 +106,35 @@ export interface PlanRow {
   maxUsers: number | null;
 }
 
+export interface CreneauRow {
+  id: string;
+  date: string;
+  periode: 'matin' | 'apres_midi';
+  heureDebut: string;
+  heureFin: string;
+  lieu: string | null;
+  signatureOuverte: boolean;
+  nbEmargements: number;
+  scelle: boolean;
+}
+
+export interface InscritRow {
+  inscriptionId: string;
+  statut: string;
+  apprenant: { id: string; email: string; prenom: string | null; nom: string | null };
+  certificat: { id: string; statut: string; numero: string } | null;
+}
+
+export interface DocumentRow {
+  id: string;
+  type: string;
+  scope: string;
+  nomFichier: string;
+  mimeType: string;
+  tailleOctets: number;
+  createdAt: string;
+}
+
 export interface UserRow {
   id: string;
   email: string;
@@ -231,7 +260,14 @@ export const api = {
   signer(
     auth: AuthState,
     creneauId: string,
-    body: { methode: 'code' | 'manuscrite' | 'qr' | 'lien'; code?: string; jeton?: string },
+    body: {
+      methode: 'code' | 'manuscrite' | 'qr' | 'lien';
+      code?: string;
+      jeton?: string;
+      geoloc?: { lat: number; lng: number; accuracy?: number };
+      consentementGeoloc?: boolean;
+      timestampClient?: string;
+    },
   ) {
     return request<{ verificationToken: string; statut: string }>(`/creneaux/${creneauId}/signer`, {
       method: 'POST',
@@ -318,6 +354,29 @@ export const api = {
   },
   enroll(auth: AuthState, sessionId: string, apprenantEmail: string) {
     return request<{ id: string }>(`/sessions/${sessionId}/inscriptions`, { method: 'POST', auth, body: { apprenantEmail } });
+  },
+  updateFormation(
+    auth: AuthState,
+    id: string,
+    body: Partial<{ intitule: string; objectifs: string; prerequis: string; dureeHeures: number; tarifCents: number; modalitesAccesHandicap: string; indicateursQualiopi: string[] }>,
+  ) {
+    return request<{ id: string; intitule: string }>(`/formations/${id}`, { method: 'PATCH', auth, body });
+  },
+  listCreneaux(auth: AuthState, sessionId: string) {
+    return request<CreneauRow[]>(`/sessions/${sessionId}/creneaux`, { auth });
+  },
+  deleteCreneau(auth: AuthState, creneauId: string) {
+    return request<{ id: string; deleted: boolean }>(`/creneaux/${creneauId}`, { method: 'DELETE', auth });
+  },
+  listInscrits(auth: AuthState, sessionId: string) {
+    return request<InscritRow[]>(`/sessions/${sessionId}/inscriptions`, { auth });
+  },
+  annulerInscription(auth: AuthState, inscriptionId: string) {
+    return request<{ inscriptionId: string; statut: 'annulee' }>(`/inscriptions/${inscriptionId}/annuler`, { method: 'PATCH', auth });
+  },
+  listDocuments(auth: AuthState, params?: { scope?: string; sessionId?: string; formationId?: string }) {
+    const q = new URLSearchParams(params as Record<string, string>).toString();
+    return request<DocumentRow[]>(`/documents${q ? `?${q}` : ''}`, { auth });
   },
 
   // --- Comptes utilisateurs (admin OF) ---

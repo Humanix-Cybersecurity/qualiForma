@@ -167,6 +167,7 @@ export const en: typeof fr = {
     success: 'Attendance recorded.',
     verifyLink: 'Verification link',
     queued: 'You are offline: your attendance has been saved on this device and will be submitted automatically once the connection is back.',
+    geolocConsent: 'I agree to share my location to strengthen the proof of attendance (optional, GDPR).',
   },
   questionnaires: {
     title: 'Questionnaires',
@@ -229,6 +230,7 @@ export const en: typeof fr = {
     created: 'Course created.',
     programme: 'Programme (PDF)',
     reglement: 'Internal rules',
+    edit: 'Edit',
   },
   sessions: {
     title: 'Sessions',
@@ -258,6 +260,13 @@ export const en: typeof fr = {
     noApprenant: 'No learner. Create accounts under “Users”.',
     chooseApprenant: 'Choose a learner…',
     enrolled: 'Learner enrolled.',
+    creneauxList: 'Half-days',
+    noCreneau: 'No half-day.',
+    inscritsList: 'Enrolled',
+    noInscrit: 'No enrollment.',
+    certificat: 'Certificate',
+    unenroll: 'Unenroll',
+    scelle: 'Sealed',
   },
   users: {
     title: 'Users',
@@ -293,6 +302,8 @@ export const en: typeof fr = {
     send: 'Upload',
     success: 'Document uploaded and scanned.',
     hint: 'PDF, TXT or ZIP. Automatic antivirus scan.',
+    listTitle: 'Uploaded documents',
+    none: 'No document.',
   },
   admin: {
     tenantsTitle: 'Organisations (tenants)',

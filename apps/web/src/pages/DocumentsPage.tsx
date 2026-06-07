@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UploadCloud } from 'lucide-react';
-import { Alert, Button, Card } from '@humanix/ui';
+import { Download, UploadCloud } from 'lucide-react';
+import { Alert, Button, Card, Spinner } from '@humanix/ui';
 import { useAuth } from '../auth/AuthProvider';
-import { uploadDocument } from '../lib/api';
+import { api, downloadFile, uploadDocument, type DocumentRow } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 
 const SELECT_CLASS =
@@ -19,6 +19,12 @@ export function DocumentsPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [docs, setDocs] = useState<DocumentRow[] | null>(null);
+
+  const reload = useCallback(() => {
+    if (auth) api.listDocuments(auth).then(setDocs).catch(() => setDocs([]));
+  }, [auth]);
+  useEffect(reload, [reload]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -31,6 +37,7 @@ export function DocumentsPage() {
       const doc = await uploadDocument(auth, file, { type, scope });
       setMsg(`${t('documents.success')} (${doc.nomFichier})`);
       if (fileRef.current) fileRef.current.value = '';
+      reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
     } finally {
@@ -81,6 +88,30 @@ export function DocumentsPage() {
           </Button>
         </form>
       </Card>
+
+      <h2 className="mb-3 mt-8 text-sm font-semibold uppercase tracking-wide text-slate-500">{t('documents.listTitle')}</h2>
+      {docs === null ? (
+        <Spinner label={t('common.loading')} />
+      ) : docs.length === 0 ? (
+        <Card><p className="text-slate-500">{t('documents.none')}</p></Card>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {docs.map((d) => (
+            <Card key={d.id} as="li">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-medium text-slate-900">{d.nomFichier}</p>
+                  <p className="text-sm text-slate-500">{d.type} · {d.scope} · {(d.tailleOctets / 1024).toFixed(0)} Ko · {d.createdAt.slice(0, 10)}</p>
+                </div>
+                <Button size="sm" variant="secondary" onPress={() => auth && downloadFile(auth, `/documents/${d.id}/download`, d.nomFichier)}>
+                  <Download aria-hidden="true" className="h-4 w-4" />
+                  {t('common.download')}
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </ul>
+      )}
     </>
   );
 }

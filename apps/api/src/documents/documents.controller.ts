@@ -3,11 +3,16 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
+  Param,
   Post,
+  Query,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { z } from 'zod';
 import type { AccessClaims } from '@humanix/domain';
 import { Auth } from '../auth/auth.decorator';
@@ -21,6 +26,8 @@ const metaSchema = z.object({
   sessionId: z.string().uuid().optional(),
   apprenantId: z.string().uuid().optional(),
 });
+
+const scopeSchema = z.enum(['tenant', 'formation', 'session', 'apprenant']);
 
 @Controller('documents')
 export class DocumentsController {
@@ -60,5 +67,27 @@ export class DocumentsController {
       checksumSha256: doc.checksumSha256,
       scanStatus: doc.scanStatus,
     };
+  }
+
+  /** Liste des documents sains (métadonnées). */
+  @Get()
+  @Auth('admin_of', 'formateur')
+  list(@Query('scope') scope?: string, @Query('sessionId') sessionId?: string, @Query('formationId') formationId?: string) {
+    const parsedScope = scopeSchema.safeParse(scope);
+    return this.documents.list({
+      ...(parsedScope.success ? { scope: parsedScope.data } : {}),
+      ...(sessionId ? { sessionId } : {}),
+      ...(formationId ? { formationId } : {}),
+    });
+  }
+
+  /** Téléchargement d'un document sain (flux depuis le stockage objet). */
+  @Get(':id/download')
+  @Auth('admin_of', 'formateur')
+  async download(@Param('id') id: string, @Res() res: Response): Promise<void> {
+    const { stream, nomFichier, mimeType } = await this.documents.getForDownload(id);
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(nomFichier)}"`);
+    stream.pipe(res);
   }
 }

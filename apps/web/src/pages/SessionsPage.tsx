@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CalendarPlus, CheckCircle2, Download, FileSpreadsheet, ShieldCheck, UserPlus } from 'lucide-react';
 import { Alert, Badge, Button, Card, CardHeader, Spinner, TextField } from '@humanix/ui';
 import { useAuth } from '../auth/AuthProvider';
-import { api, downloadFile, type FormationRow, type SessionCompletude, type SessionRow, type UserRow } from '../lib/api';
+import { api, downloadFile, type CreneauRow, type FormationRow, type InscritRow, type SessionCompletude, type SessionRow, type UserRow } from '../lib/api';
 import { PageHeader } from '../components/PageHeader';
 
 export function SessionsPage() {
@@ -144,12 +144,50 @@ function ManageSession({ session, onChanged }: { session: SessionRow; onChanged:
   const [heureFin, setHeureFin] = useState('12:30');
   const [apprenants, setApprenants] = useState<UserRow[]>([]);
   const [apprenantEmail, setApprenantEmail] = useState('');
+  const [creneaux, setCreneaux] = useState<CreneauRow[]>([]);
+  const [inscrits, setInscrits] = useState<InscritRow[]>([]);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const loadLists = useCallback(() => {
+    if (!auth) return;
+    api.listCreneaux(auth, session.id).then(setCreneaux).catch(() => setCreneaux([]));
+    api.listInscrits(auth, session.id).then(setInscrits).catch(() => setInscrits([]));
+  }, [auth, session.id]);
+
   useEffect(() => {
-    if (open && auth) api.listUsers(auth, 'apprenant').then(setApprenants).catch(() => setApprenants([]));
-  }, [open, auth]);
+    if (open && auth) {
+      api.listUsers(auth, 'apprenant').then(setApprenants).catch(() => setApprenants([]));
+      loadLists();
+    }
+  }, [open, auth, loadLists]);
+
+  function refresh() {
+    loadLists();
+    onChanged();
+  }
+
+  async function removeCreneau(id: string) {
+    if (!auth) return;
+    setError(null); setMsg(null);
+    try {
+      await api.deleteCreneau(auth, id);
+      refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.error'));
+    }
+  }
+
+  async function unenroll(inscriptionId: string) {
+    if (!auth) return;
+    setError(null); setMsg(null);
+    try {
+      await api.annulerInscription(auth, inscriptionId);
+      refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.error'));
+    }
+  }
 
   async function addCreneau(e: FormEvent) {
     e.preventDefault();
@@ -158,7 +196,7 @@ function ManageSession({ session, onChanged }: { session: SessionRow; onChanged:
     try {
       await api.addCreneaux(auth, session.id, [{ date, periode, heureDebut, heureFin }]);
       setMsg(t('sessions.creneauAdded'));
-      onChanged();
+      refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
     }
@@ -172,7 +210,7 @@ function ManageSession({ session, onChanged }: { session: SessionRow; onChanged:
       await api.enroll(auth, session.id, apprenantEmail);
       setMsg(t('sessions.enrolled'));
       setApprenantEmail('');
-      onChanged();
+      refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.error'));
     }
@@ -231,6 +269,54 @@ function ManageSession({ session, onChanged }: { session: SessionRow; onChanged:
           )}
           <Button type="submit" size="sm" className="self-start" isDisabled={!apprenantEmail}>{t('sessions.enroll')}</Button>
         </form>
+      </div>
+
+      {/* Listes existantes */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <p className="mb-2 text-sm font-medium text-slate-800">{t('sessions.creneauxList')} ({creneaux.length})</p>
+          {creneaux.length === 0 ? (
+            <p className="text-sm text-slate-500">{t('sessions.noCreneau')}</p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {creneaux.map((c) => (
+                <li key={c.id} className="flex items-center justify-between rounded-md bg-white px-3 py-2 text-sm ring-1 ring-slate-100">
+                  <span>
+                    {c.date.slice(0, 10)} · {c.periode === 'matin' ? t('sessions.matin') : t('sessions.apresMidi')} · {c.heureDebut}–{c.heureFin}
+                    {c.scelle ? <Badge tone="success" >{t('sessions.scelle')}</Badge> : null}
+                  </span>
+                  {!c.scelle && c.nbEmargements === 0 ? (
+                    <Button size="sm" variant="ghost" onPress={() => removeCreneau(c.id)}>{t('common.delete')}</Button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <p className="mb-2 text-sm font-medium text-slate-800">{t('sessions.inscritsList')} ({inscrits.filter((i) => i.statut !== 'annulee').length})</p>
+          {inscrits.length === 0 ? (
+            <p className="text-sm text-slate-500">{t('sessions.noInscrit')}</p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {inscrits.map((i) => (
+                <li key={i.inscriptionId} className="flex items-center justify-between gap-2 rounded-md bg-white px-3 py-2 text-sm ring-1 ring-slate-100">
+                  <span className={i.statut === 'annulee' ? 'text-slate-400 line-through' : ''}>
+                    {[i.apprenant.prenom, i.apprenant.nom].filter(Boolean).join(' ') || i.apprenant.email}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Button size="sm" variant="ghost" onPress={() => auth && downloadFile(auth, `/inscriptions/${i.inscriptionId}/certificat.pdf`, `certificat-${i.inscriptionId}.pdf`)}>
+                      {t('sessions.certificat')}
+                    </Button>
+                    {i.statut !== 'annulee' ? (
+                      <Button size="sm" variant="ghost" onPress={() => unenroll(i.inscriptionId)}>{t('sessions.unenroll')}</Button>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );

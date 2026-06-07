@@ -23,6 +23,19 @@ export function SignerPage() {
   const [token, setToken] = useState<string | null>(null);
   const [queued, setQueued] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [consentGeo, setConsentGeo] = useState(false);
+
+  /** Capture la position seulement si l'utilisateur a explicitement consenti (RGPD). */
+  function captureGeoloc(): Promise<{ lat: number; lng: number; accuracy?: number } | null> {
+    if (!consentGeo || typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+        () => resolve(null),
+        { timeout: 5000, enableHighAccuracy: false },
+      );
+    });
+  }
 
   // Désactive la soumission tant que la condition de la méthode n'est pas remplie.
   const submitDisabled =
@@ -33,10 +46,16 @@ export function SignerPage() {
     if (!auth) return;
     setError(null);
     setLoading(true);
+    const geoloc = await captureGeoloc();
     // Jeton dynamique (QR/lien) prioritaire ; sinon code / manuscrite.
-    const body = jeton
+    const base = jeton
       ? ({ methode: 'qr', jeton } as const)
       : ({ methode, ...(methode === 'code' ? { code } : {}) } as const);
+    const body = {
+      ...base,
+      timestampClient: new Date().toISOString(),
+      ...(geoloc ? { geoloc, consentementGeoloc: true } : {}),
+    };
     try {
       const res = await api.signer(auth, id, body);
       setToken(res.verificationToken);
@@ -128,6 +147,11 @@ export function SignerPage() {
               )}
             </>
           )}
+
+          <label className="flex items-start gap-2 text-sm text-slate-600">
+            <input type="checkbox" checked={consentGeo} onChange={(e) => setConsentGeo(e.target.checked)} className="mt-0.5" />
+            <span>{t('sign.geolocConsent')}</span>
+          </label>
 
           <Button type="submit" isDisabled={submitDisabled} className="self-start">
             {loading ? t('common.loading') : t('sign.confirm')}

@@ -18,6 +18,29 @@ export function FormationsPage() {
   const [error, setError] = useState<string | null>(null);
   const isAdmin = claims?.role === 'admin_of';
 
+  // Édition inline d'une formation existante.
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editIntitule, setEditIntitule] = useState('');
+  const [editDuree, setEditDuree] = useState('');
+
+  function startEdit(f: FormationRow) {
+    setEditId(f.id);
+    setEditIntitule(f.intitule);
+    setEditDuree(String(Number(f.dureeHeures)));
+  }
+  async function saveEdit(e: FormEvent) {
+    e.preventDefault();
+    if (!auth || !editId) return;
+    setError(null);
+    try {
+      await api.updateFormation(auth, editId, { intitule: editIntitule, dureeHeures: Number(editDuree) });
+      setEditId(null);
+      reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.error'));
+    }
+  }
+
   const reload = useCallback(() => {
     if (auth) api.formations(auth).then(setRows).catch(() => setRows([]));
   }, [auth]);
@@ -80,6 +103,17 @@ export function FormationsPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {rows.map((f) => (
             <Card key={f.id}>
+              {editId === f.id ? (
+                <form onSubmit={saveEdit} className="flex flex-col gap-3">
+                  <TextField label={t('formations.intitule')} value={editIntitule} onChange={setEditIntitule} isRequired />
+                  <TextField label={t('formations.dureeHeures')} value={editDuree} onChange={setEditDuree} inputMode="numeric" isRequired />
+                  <div className="flex gap-2">
+                    <Button type="submit" size="sm">{t('common.save')}</Button>
+                    <Button type="button" size="sm" variant="ghost" onPress={() => setEditId(null)}>{t('common.cancel')}</Button>
+                  </div>
+                </form>
+              ) : (
+              <>
               <div className="flex items-start justify-between gap-3">
                 <h2 className="font-semibold text-slate-900">{f.intitule}</h2>
                 <Badge tone={f.actif ? 'success' : 'neutral'}>
@@ -98,16 +132,22 @@ export function FormationsPage() {
                 </div>
               ) : null}
               {isAdmin ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-3"
-                  onPress={() => auth && downloadFile(auth, `/formations/${f.id}/programme.pdf`, `programme-${f.id}.pdf`)}
-                >
-                  <Download aria-hidden="true" className="h-4 w-4" />
-                  {t('formations.programme')}
-                </Button>
+                <div className="mt-3 flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => auth && downloadFile(auth, `/formations/${f.id}/programme.pdf`, `programme-${f.id}.pdf`)}
+                  >
+                    <Download aria-hidden="true" className="h-4 w-4" />
+                    {t('formations.programme')}
+                  </Button>
+                  <Button variant="ghost" size="sm" onPress={() => startEdit(f)}>
+                    {t('formations.edit')}
+                  </Button>
+                </div>
               ) : null}
+              </>
+              )}
             </Card>
           ))}
         </div>

@@ -164,6 +164,7 @@ export const fr = {
     success: 'Émargement enregistré.',
     verifyLink: 'Lien de vérification',
     queued: 'Vous êtes hors ligne : votre émargement est enregistré sur cet appareil et sera transmis automatiquement dès le retour de la connexion.',
+    geolocConsent: 'J’accepte de partager ma position pour renforcer la preuve de présence (facultatif, RGPD).',
   },
   questionnaires: {
     title: 'Questionnaires',
@@ -226,6 +227,7 @@ export const fr = {
     created: 'Formation créée.',
     programme: 'Programme (PDF)',
     reglement: 'Règlement intérieur',
+    edit: 'Modifier',
   },
   sessions: {
     title: 'Sessions',
@@ -255,6 +257,13 @@ export const fr = {
     noApprenant: 'Aucun apprenant. Créez des comptes dans « Utilisateurs ».',
     chooseApprenant: 'Choisir un apprenant…',
     enrolled: 'Apprenant inscrit.',
+    creneauxList: 'Demi-journées',
+    noCreneau: 'Aucune demi-journée.',
+    inscritsList: 'Inscrits',
+    noInscrit: 'Aucun inscrit.',
+    certificat: 'Certificat',
+    unenroll: 'Désinscrire',
+    scelle: 'Scellé',
   },
   users: {
     title: 'Utilisateurs',
@@ -290,6 +299,8 @@ export const fr = {
     send: 'Déposer',
     success: 'Document déposé et analysé.',
     hint: 'PDF, TXT ou ZIP. Analyse antivirus automatique.',
+    listTitle: 'Documents déposés',
+    none: 'Aucun document.',
   },
   admin: {
     tenantsTitle: 'Organismes (tenants)',

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { z } from 'zod';
 import type { AccessClaims } from '@humanix/domain';
 import { Auth } from '../auth/auth.decorator';
@@ -102,6 +102,30 @@ export class CatalogController {
     @Body(new ZodValidationPipe(enrollSchema)) body: { apprenantEmail: string },
   ) {
     return this.catalog.enroll(id, body.apprenantEmail);
+  }
+
+  @Get('sessions/:id/creneaux')
+  @Auth('admin_of', 'formateur')
+  listCreneaux(@Param('id') id: string) {
+    return this.catalog.listCreneaux(id);
+  }
+
+  @Delete('creneaux/:id')
+  @Auth('admin_of')
+  deleteCreneau(@Param('id') id: string) {
+    return this.catalog.deleteCreneau(id);
+  }
+
+  @Get('sessions/:id/inscriptions')
+  @Auth('admin_of', 'formateur')
+  listInscrits(@Param('id') id: string) {
+    return this.catalog.listInscrits(id);
+  }
+
+  @Patch('inscriptions/:id/annuler')
+  @Auth('admin_of')
+  annulerInscription(@Param('id') id: string) {
+    return this.catalog.annulerInscription(id);
   }
 
   @Get('sessions/:id/completude')

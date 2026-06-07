@@ -150,6 +150,89 @@ export class CatalogService {
     });
   }
 
+  /** Liste les créneaux (demi-journées) d'une session, avec présence d'un scellement. */
+  async listCreneaux(sessionId: string) {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const creneaux = await tx.creneau.findMany({
+        where: { sessionId },
+        orderBy: [{ date: 'asc' }, { periode: 'asc' }],
+        select: {
+          id: true,
+          date: true,
+          periode: true,
+          heureDebut: true,
+          heureFin: true,
+          lieu: true,
+          signatureOuverte: true,
+          _count: { select: { emargements: true } },
+        },
+      });
+      const scelles = await tx.scellementCreneau.findMany({
+        where: { creneauId: { in: creneaux.map((c) => c.id) } },
+        select: { creneauId: true },
+      });
+      const scelleSet = new Set(scelles.map((s) => s.creneauId));
+      return creneaux.map((c) => ({
+        id: c.id,
+        date: c.date,
+        periode: c.periode,
+        heureDebut: c.heureDebut,
+        heureFin: c.heureFin,
+        lieu: c.lieu,
+        signatureOuverte: c.signatureOuverte,
+        nbEmargements: c._count.emargements,
+        scelle: scelleSet.has(c.id),
+      }));
+    });
+  }
+
+  /** Supprime un créneau s'il n'a ni émargement ni scellement (préservation des preuves). */
+  async deleteCreneau(creneauId: string) {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const creneau = await tx.creneau.findFirst({
+        where: { id: creneauId },
+        select: { id: true, _count: { select: { emargements: true } } },
+      });
+      if (!creneau) throw new NotFoundException('Créneau introuvable.');
+      const scelle = await tx.scellementCreneau.findFirst({ where: { creneauId }, select: { id: true } });
+      if (creneau._count.emargements > 0 || scelle) {
+        throw new BadRequestException('Créneau non supprimable : des émargements ou un scellement existent.');
+      }
+      await tx.creneau.delete({ where: { id: creneauId } });
+      return { id: creneauId, deleted: true };
+    });
+  }
+
+  /** Liste les inscrits d'une session (avec statut du certificat). */
+  async listInscrits(sessionId: string) {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const inscriptions = await tx.inscription.findMany({
+        where: { sessionId },
+        orderBy: { dateInscription: 'asc' },
+        include: {
+          apprenant: { select: { id: true, email: true, prenom: true, nom: true } },
+          certificat: { select: { id: true, statut: true, numero: true } },
+        },
+      });
+      return inscriptions.map((i) => ({
+        inscriptionId: i.id,
+        statut: i.statut,
+        apprenant: i.apprenant,
+        certificat: i.certificat,
+      }));
+    });
+  }
+
+  /** Annule une inscription (soft : statut annulee, historique conservé). */
+  async annulerInscription(inscriptionId: string) {
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const inscription = await tx.inscription.findFirst({ where: { id: inscriptionId }, select: { id: true } });
+      if (!inscription) throw new NotFoundException('Inscription introuvable.');
+      await tx.inscription.update({ where: { id: inscriptionId }, data: { statut: 'annulee' } });
+      return { inscriptionId, statut: 'annulee' as const };
+    });
+  }
+
   /**
    * Rapport de complétude Qualiopi d'une session : détecte les pièces de preuve manquantes
    * AVANT la clôture (indicateur 11/13 — preuve de réalisation). Bloquant = `pret: false`.

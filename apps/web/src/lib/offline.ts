@@ -7,7 +7,14 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 export interface PendingSign {
   id?: number;
   creneauId: string;
-  body: { methode: 'code' | 'manuscrite' | 'qr' | 'lien'; code?: string; jeton?: string };
+  body: {
+    methode: 'code' | 'manuscrite' | 'qr' | 'lien';
+    code?: string;
+    jeton?: string;
+    geoloc?: { lat: number; lng: number; accuracy?: number };
+    consentementGeoloc?: boolean;
+    timestampClient?: string;
+  };
   /** Horodatage local indicatif (transmis comme timestampClient à la sync). */
   ts: string;
 }
