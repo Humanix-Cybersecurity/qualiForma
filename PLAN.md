@@ -9,7 +9,7 @@
 | 2 | Couche tenant + RLS + auth/RBAC/MFA + tests d'isolation | middleware tenant, policies RLS, JWT+TOTP | ✅ fait |
 | 3 | Modèle de données + migrations + seed | schéma Prisma (26 tables), RLS dynamique, seed démo | ✅ fait |
 | 4 | Documentaire (upload + ClamAV + chiffrement + ZIP sécurisé) | pipeline upload fail-closed | ⬜ |
-| 5 | **Moteur d'émargement & signature** (priorité produit) | `signature-engine`, audit chaîné, PDF, vérification | ⬜ |
+| 5 | **Moteur d'émargement & signature** (priorité produit) | `signature-engine` (24 tests), audit chaîné, vérification — PDF à l'étape 8 | ✅ fait |
 | 6 | Sessions/créneaux/planning + mode formateur | projection, lancement, contrôle, co-signature | ⬜ |
 | 7 | Questionnaires & évaluations + restitution | amont/aval/satisfaction, exports agrégés | ⬜ |
 | 8 | Exports | émargement PDF, certificat, décompte (PDF/CSV/XLSX) | ⬜ |

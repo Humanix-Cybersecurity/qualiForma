@@ -11,4 +11,22 @@ sans dépendance au framework HTTP, entièrement testé.
 - Ports d'extension : `SignatureProvider` (→ **SEA via QTSP eIDAS**), `TimestampAuthority`
   (→ **horodatage qualifié RFC 3161 / eIDAS**).
 
-> Squelette — implémentation à l'étape 5 (priorité produit) du [PLAN](../../PLAN.md).
+## API
+
+```ts
+import { SignatureEngine, verifyChain, evaluateCreneauCompletude } from '@humanix/signature-engine';
+
+const engine = new SignatureEngine(); // SES + horodatage serveur par défaut
+const proof = await engine.sign(emargementInput, { prevAuditHash });   // → ProofRecord
+engine.verify(proof, payload);          // intégrité contenu + maillon d'audit
+verifyChain(entries);                   // intégrité de toute la chaîne
+```
+
+- **Déterministe & testable** : horloge, générateur de jeton, `SignatureProvider` et
+  `TimestampAuthority` sont injectables. 24 tests unitaires.
+- **Pur** : aucune dépendance base de données ni réseau (node:crypto uniquement).
+- Bascule **SES → SEA** et **horodatage serveur → RFC 3161** par simple injection, sans
+  toucher au moteur.
+
+> ✅ Implémenté (étape 5). L'intégration API (persistance PreuveSignature + chaîne d'audit
+> par tenant + endpoints d'émargement) arrive avec le mode formateur (étape 6).
