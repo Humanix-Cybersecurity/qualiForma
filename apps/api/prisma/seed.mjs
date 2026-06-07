@@ -34,6 +34,23 @@ async function main() {
     },
   });
 
+  // Tenant système + compte super-admin SaaS (exploitation, slug "humanix").
+  const systeme = await prisma.tenant.upsert({
+    where: { slug: 'humanix' },
+    update: {},
+    create: { slug: 'humanix', name: 'Humanix (plateforme)' },
+  });
+  await prisma.user.upsert({
+    where: { tenantId_email: { tenantId: systeme.id, email: 'superadmin@humanix.test' } },
+    update: {},
+    create: {
+      tenantId: systeme.id,
+      email: 'superadmin@humanix.test',
+      passwordHash,
+      role: 'super_admin',
+    },
+  });
+
   // Réinitialise le tenant démo (cascade supprime tout son contenu).
   await prisma.tenant.deleteMany({ where: { slug: SLUG } });
   const tenant = await prisma.tenant.create({

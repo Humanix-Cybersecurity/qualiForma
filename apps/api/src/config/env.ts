@@ -12,6 +12,9 @@ const envSchema = z.object({
     .transform((v) => v.split(',').map((s) => s.trim()).filter(Boolean)),
 
   DATABASE_URL: z.string().min(1),
+  // Connexion privilégiée (rôle propriétaire) pour l'exploitation super-admin SaaS
+  // (cross-tenant, hors RLS — module séparé du cœur AGPL, ADR 0007). Optionnelle.
+  DATABASE_ADMIN_URL: z.string().optional(),
 
   JWT_ACCESS_SECRET: z.string().min(16),
   JWT_REFRESH_SECRET: z.string().min(16),

@@ -9,6 +9,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { EmargementModule } from './emargement/emargement.module';
 import { QuestionnairesModule } from './questionnaires/questionnaires.module';
 import { ExportsModule } from './exports/exports.module';
+import { SuperAdminModule } from './superadmin/superadmin.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -26,6 +27,7 @@ import { HealthController } from './health/health.controller';
     EmargementModule,
     QuestionnairesModule,
     ExportsModule,
+    SuperAdminModule,
   ],
   controllers: [HealthController],
 })
