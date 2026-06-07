@@ -141,6 +141,33 @@ export interface Bpf {
   financeurLabels: Record<string, string>;
 }
 
+export interface PublicCatalogue {
+  organisme: string;
+  formations: {
+    id: string;
+    intitule: string;
+    objectifs: string | null;
+    prerequis: string | null;
+    dureeHeures: number;
+    tarifCents: number | null;
+    modalitesAccesHandicap: string | null;
+    sessions: { id: string; intitule: string | null; dateDebut: string; dateFin: string; lieu: string | null }[];
+  }[];
+}
+
+export interface DemandeRow {
+  id: string;
+  sessionId: string | null;
+  formationId: string | null;
+  nom: string;
+  prenom: string | null;
+  email: string;
+  telephone: string | null;
+  message: string | null;
+  statut: string;
+  createdAt: string;
+}
+
 export interface QualiopiIndicateur {
   numero: number;
   critere: number;
@@ -563,6 +590,26 @@ export const api = {
   },
   runPurge(auth: AuthState) {
     return request<{ emargements: number; scellements: number; audit: number }>('/admin/jobs/purger', { method: 'POST', auth });
+  },
+
+  // --- Public (catalogue & préinscription, sans authentification) ---
+  publicCatalogue(tenantSlug: string) {
+    return request<PublicCatalogue>('/public/catalogue', { tenantSlug });
+  },
+  submitDemande(
+    tenantSlug: string,
+    body: { sessionId?: string; formationId?: string; nom: string; prenom?: string; email: string; telephone?: string; message?: string },
+  ) {
+    return request<{ id: string; recue: boolean }>('/public/demandes', { method: 'POST', tenantSlug, body });
+  },
+  demandes(auth: AuthState) {
+    return request<DemandeRow[]>('/demandes', { auth });
+  },
+  setDemandeStatut(auth: AuthState, id: string, statut: 'nouvelle' | 'traitee' | 'convertie' | 'refusee') {
+    return request<{ id: string; statut: string }>(`/demandes/${id}/statut`, { method: 'PATCH', auth, body: { statut } });
+  },
+  convertirDemande(auth: AuthState, id: string) {
+    return request<{ demandeId: string; userId: string; temporaryPassword?: string }>(`/demandes/${id}/convertir`, { method: 'POST', auth });
   },
 
   // --- Conformité Qualiopi (RNQ) ---

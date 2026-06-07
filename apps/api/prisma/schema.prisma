@@ -1007,3 +1007,32 @@ model IndicateurStatut {
   @@index([tenantId])
   @@map("indicateur_statut")
 }
+
+// ============================================================================
+// Catalogue public & inscription en ligne (N5)
+// ============================================================================
+
+enum DemandeStatut {
+  nouvelle
+  traitee
+  convertie
+  refusee
+}
+
+/// Demande d'inscription (préinscription) déposée depuis le catalogue public.
+model DemandeInscription {
+  id          String        @id @default(uuid()) @db.Uuid
+  tenantId    String        @map("tenant_id") @db.Uuid
+  sessionId   String?       @map("session_id") @db.Uuid
+  formationId String?       @map("formation_id") @db.Uuid
+  nom         String
+  prenom      String?
+  email       String
+  telephone   String?
+  message     String?
+  statut      DemandeStatut @default(nouvelle)
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@map("demande_inscription")
+}

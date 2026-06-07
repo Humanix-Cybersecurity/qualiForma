@@ -20,6 +20,8 @@ import { ConventionsPage } from './pages/ConventionsPage';
 import { FacturationPage } from './pages/FacturationPage';
 import { DevisPage } from './pages/DevisPage';
 import { QualiopiPage } from './pages/QualiopiPage';
+import { CataloguePublicPage } from './pages/CataloguePublicPage';
+import { DemandesPage } from './pages/DemandesPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { AdminTenantsPage } from './pages/AdminTenantsPage';
 import { AdminPlansPage } from './pages/AdminPlansPage';
@@ -52,6 +54,7 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/accessibilite" element={<AccessibilitePage />} />
         <Route path="/verification/:token" element={<VerificationPage />} />
+        <Route path="/catalogue/:slug" element={<CataloguePublicPage />} />
 
         {/* Espace authentifié */}
         <Route
@@ -77,6 +80,7 @@ export function App() {
           <Route path="facturation" element={<RoleRoute roles={['admin_of']}><FacturationPage /></RoleRoute>} />
           <Route path="documents" element={<RoleRoute roles={['admin_of']}><DocumentsPage /></RoleRoute>} />
           <Route path="reclamations" element={<RoleRoute roles={['admin_of', 'formateur', 'apprenant', 'referent_handicap']}><ReclamationsPage /></RoleRoute>} />
+          <Route path="demandes" element={<RoleRoute roles={['admin_of']}><DemandesPage /></RoleRoute>} />
           <Route path="tenants" element={<RoleRoute roles={['super_admin']}><AdminTenantsPage /></RoleRoute>} />
           <Route path="plans" element={<RoleRoute roles={['super_admin']}><AdminPlansPage /></RoleRoute>} />
         </Route>
