@@ -106,6 +106,30 @@ export interface PlanRow {
   maxUsers: number | null;
 }
 
+export interface FactureRow {
+  id: string;
+  numero: string;
+  statut: string;
+  financeur: string | null;
+  dateEmission: string;
+  dateEcheance: string | null;
+  totalTtcCents: number;
+  payeCents: number;
+  resteCents: number;
+}
+
+export interface Bpf {
+  annee: number;
+  produits: Record<string, { ht: number; ttc: number; nb: number }>;
+  totalHtCents: number;
+  totalTtcCents: number;
+  nbSessions: number;
+  heuresFormation: number;
+  nbInscriptions: number;
+  nbStagiairesDistincts: number;
+  financeurLabels: Record<string, string>;
+}
+
 export interface DashboardStats {
   formationsActives: number;
   sessionsTotal: number;
@@ -513,6 +537,36 @@ export const api = {
   // --- Pilotage / statistiques ---
   statsDashboard(auth: AuthState) {
     return request<DashboardStats>('/stats/dashboard', { auth });
+  },
+
+  // --- Facturation (gestion commerciale) ---
+  factures(auth: AuthState) {
+    return request<FactureRow[]>('/factures', { auth });
+  },
+  financeurs(auth: AuthState) {
+    return request<{ value: string; label: string }[]>('/factures/financeurs', { auth });
+  },
+  createFacture(
+    auth: AuthState,
+    body: {
+      sessionId?: string;
+      entrepriseId?: string;
+      financeur?: string;
+      dateEcheance?: string;
+      notes?: string;
+      lignes: { designation: string; quantite?: number; prixUnitaireCents: number; tvaTauxBp?: number }[];
+    },
+  ) {
+    return request<{ id: string; numero: string; statut: string; totalTtcCents: number }>('/factures', { method: 'POST', auth, body });
+  },
+  addPaiement(auth: AuthState, factureId: string, body: { montantCents: number; moyen?: string; reference?: string; datePaiement?: string }) {
+    return request<{ statut: string; payeCents: number; resteCents: number }>(`/factures/${factureId}/paiements`, { method: 'POST', auth, body });
+  },
+  annulerFacture(auth: AuthState, id: string) {
+    return request<{ id: string; statut: string }>(`/factures/${id}/annuler`, { method: 'PATCH', auth });
+  },
+  bpf(auth: AuthState, annee: number) {
+    return request<Bpf>(`/factures/bpf?annee=${annee}`, { auth });
   },
 
   // --- Conventions ---

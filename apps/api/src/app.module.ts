@@ -21,6 +21,7 @@ import { ReclamationsModule } from './reclamations/reclamations.module';
 import { UsersModule } from './users/users.module';
 import { ConventionsModule } from './conventions/conventions.module';
 import { StatsModule } from './stats/stats.module';
+import { FacturationModule } from './facturation/facturation.module';
 import { JobsModule } from './jobs/jobs.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { QuotasModule } from './quotas/quotas.module';
@@ -53,6 +54,7 @@ import { HealthController } from './health/health.controller';
     UsersModule,
     ConventionsModule,
     StatsModule,
+    FacturationModule,
     JobsModule,
     MetricsModule,
     QuotasModule,

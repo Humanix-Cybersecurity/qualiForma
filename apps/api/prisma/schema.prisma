@@ -504,6 +504,9 @@ model Inscription {
   apprenantId    String            @map("apprenant_id") @db.Uuid
   entrepriseId   String?           @map("entreprise_id") @db.Uuid
   statut         InscriptionStatut @default(prevue)
+  // Financement (pour la facturation et le BPF).
+  financeur      Financeur?
+  prixCents      Int?              @map("prix_cents")
   dateInscription DateTime         @default(now()) @map("date_inscription")
 
   tenant     Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -829,4 +832,97 @@ model AuditLog {
 
   @@index([tenantId, createdAt])
   @@map("audit_log")
+}
+
+// ============================================================================
+// Gestion commerciale (N2) — financeurs, factures, paiements
+// ============================================================================
+
+/// Type de financeur (catégories BPF — Bilan Pédagogique et Financier).
+enum Financeur {
+  entreprise       // fonds propres de l'entreprise / plan de développement des compétences
+  opco             // OPCO
+  particulier      // particulier à titre individuel
+  pole_emploi      // France Travail (ex-Pôle emploi)
+  cpf              // CPF / Caisse des Dépôts (EDOF)
+  region           // Conseil régional
+  etat             // État / pouvoirs publics
+  autre_of         // autre organisme de formation (sous-traitance)
+  autre
+}
+
+enum FactureStatut {
+  brouillon
+  emise
+  partiellement_payee
+  payee
+  annulee
+}
+
+enum MoyenPaiement {
+  virement
+  cheque
+  carte
+  especes
+  prelevement
+  autre
+}
+
+/// Facture émise par l'organisme (rattachable à une session/entreprise/apprenant).
+model Facture {
+  id            String        @id @default(uuid()) @db.Uuid
+  tenantId      String        @map("tenant_id") @db.Uuid
+  numero        String
+  sessionId     String?       @map("session_id") @db.Uuid
+  entrepriseId  String?       @map("entreprise_id") @db.Uuid
+  apprenantId   String?       @map("apprenant_id") @db.Uuid
+  financeur     Financeur?
+  statut        FactureStatut @default(brouillon)
+  dateEmission  DateTime      @default(now()) @map("date_emission")
+  dateEcheance  DateTime?     @map("date_echeance")
+  totalHtCents  Int           @default(0) @map("total_ht_cents")
+  totalTvaCents Int           @default(0) @map("total_tva_cents")
+  totalTtcCents Int           @default(0) @map("total_ttc_cents")
+  notes         String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  lignes    FactureLigne[]
+  paiements Paiement[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId])
+  @@map("facture")
+}
+
+model FactureLigne {
+  id                String  @id @default(uuid()) @db.Uuid
+  tenantId          String  @map("tenant_id") @db.Uuid
+  factureId         String  @map("facture_id") @db.Uuid
+  designation       String
+  quantite          Decimal @default(1) @db.Decimal(10, 2)
+  prixUnitaireCents Int     @map("prix_unitaire_cents")
+  tvaTauxBp         Int     @default(0) @map("tva_taux_bp") // taux TVA en points de base (2000 = 20%)
+
+  facture Facture @relation(fields: [factureId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([factureId])
+  @@map("facture_ligne")
+}
+
+model Paiement {
+  id           String        @id @default(uuid()) @db.Uuid
+  tenantId     String        @map("tenant_id") @db.Uuid
+  factureId    String        @map("facture_id") @db.Uuid
+  datePaiement DateTime      @default(now()) @map("date_paiement")
+  montantCents Int           @map("montant_cents")
+  moyen        MoyenPaiement @default(virement)
+  reference    String?
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  facture Facture @relation(fields: [factureId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([factureId])
+  @@map("paiement")
 }

@@ -17,6 +17,7 @@ import { FormationsPage } from './pages/FormationsPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { UtilisateursPage } from './pages/UtilisateursPage';
 import { ConventionsPage } from './pages/ConventionsPage';
+import { FacturationPage } from './pages/FacturationPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { AdminTenantsPage } from './pages/AdminTenantsPage';
 import { AdminPlansPage } from './pages/AdminPlansPage';
@@ -69,6 +70,7 @@ export function App() {
           <Route path="sessions" element={<RoleRoute roles={['admin_of', 'formateur']}><SessionsPage /></RoleRoute>} />
           <Route path="utilisateurs" element={<RoleRoute roles={['admin_of']}><UtilisateursPage /></RoleRoute>} />
           <Route path="conventions" element={<RoleRoute roles={['admin_of']}><ConventionsPage /></RoleRoute>} />
+          <Route path="facturation" element={<RoleRoute roles={['admin_of']}><FacturationPage /></RoleRoute>} />
           <Route path="documents" element={<RoleRoute roles={['admin_of']}><DocumentsPage /></RoleRoute>} />
           <Route path="reclamations" element={<RoleRoute roles={['admin_of', 'formateur', 'apprenant', 'referent_handicap']}><ReclamationsPage /></RoleRoute>} />
           <Route path="tenants" element={<RoleRoute roles={['super_admin']}><AdminTenantsPage /></RoleRoute>} />

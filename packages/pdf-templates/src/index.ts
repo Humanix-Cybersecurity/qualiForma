@@ -4,6 +4,7 @@ export * from './format';
 export { renderFeuilleEmargement } from './emargement';
 export { renderCertificat } from './certificat';
 export { renderDecompte } from './decompte';
+export { renderFacture, type FactureData, type FactureLigneData } from './facture';
 export {
   renderConvention,
   renderConvocation,
