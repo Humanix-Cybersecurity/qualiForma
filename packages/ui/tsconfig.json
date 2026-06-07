@@ -6,6 +6,8 @@
     "verbatimModuleSyntax": false,
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // react-aria-components expose des types stricts ; on s'aligne sur api/web.
+    "exactOptionalPropertyTypes": false,
     "types": [],
     "outDir": "dist",
     "rootDir": "src",

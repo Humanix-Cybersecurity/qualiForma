@@ -1,0 +1,97 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Stack de DÉVELOPPEMENT complète pour voir l'application tourner.
+#   docker compose up --build
+# puis ouvrir http://localhost:8080  (API : http://localhost:3000)
+#
+# Comptes de démo (mot de passe : Demo!Passw0rd) — en-tête tenant « demo » géré par le front :
+#   admin@demo.test · formateur@demo.test · apprenant1@demo.test … · superadmin@humanix.test (humanix)
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: humanix_admin
+      POSTGRES_PASSWORD: humanix_admin
+      POSTGRES_DB: humanix
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./infra/docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U humanix_admin -d humanix"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports: ["9000:9000", "9001:9001"]
+    volumes: ["minio_data:/data"]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  clamav:
+    image: clamav/clamav:stable
+    # Image officielle amd64 uniquement → émulation sur Apple Silicon (démarrage ~1-2 min).
+    platform: linux/amd64
+    volumes: ["clamav_db:/var/lib/clamav"]
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+      target: api-runtime
+    environment:
+      NODE_ENV: development
+      API_PORT: 3000
+      PUBLIC_BASE_URL: http://localhost:3000
+      CORS_ORIGINS: http://localhost:8080
+      # Runtime applicatif (rôle `app`, soumis à la RLS) ; migrations via le propriétaire.
+      DATABASE_URL: postgresql://app:app@postgres:5432/humanix?schema=public
+      DATABASE_MIGRATION_URL: postgresql://humanix_admin:humanix_admin@postgres:5432/humanix?schema=public
+      # Exploitation super-admin (cross-tenant, hors RLS) — activée pour la démo.
+      DATABASE_ADMIN_URL: postgresql://humanix_admin:humanix_admin@postgres:5432/humanix?schema=public
+      DB_HOST: postgres
+      DB_OWNER: humanix_admin
+      JWT_ACCESS_SECRET: dev-access-secret-change-me-please
+      JWT_REFRESH_SECRET: dev-refresh-secret-change-me-please
+      APP_ENCRYPTION_KEY: ZGV2LW9ubHktMzItYnl0ZS1rZXktY2hhbmdlLW1lISE=
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: humanix
+      S3_FORCE_PATH_STYLE: "true"
+      S3_SSE: "false"
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+    ports: ["3000:3000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      minio: { condition: service_healthy }
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+      target: web-runtime
+      args:
+        # URL de l'API du point de vue du NAVIGATEUR (inlinée par Vite au build).
+        VITE_API_URL: http://localhost:3000
+    ports: ["8080:4173"]
+    depends_on: [api]
+
+volumes:
+  pg_data:
+  minio_data:
+  clamav_db:

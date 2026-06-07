@@ -59,7 +59,26 @@ infra/docker/   Dockerfiles & compose
 ## Démarrage (à venir — phase 2)
 
 ```bash
+## Lancer l'application (Docker)
+
+Stack complète (API + front + PostgreSQL + MinIO + ClamAV), avec migration / RLS / seed
+automatiques :
+
+```bash
+docker compose up --build
+# → Front : http://localhost:8080   ·   API : http://localhost:3000
+```
+
+Comptes de démo (mot de passe `Demo!Passw0rd`, en-tête tenant `demo`) : `admin@demo.test`,
+`formateur@demo.test`, `apprenant1@demo.test`… · super-admin : `superadmin@humanix.test`
+(tenant `humanix`).
+
+## Développement local (sans conteneur applicatif)
+
+```bash
 pnpm install
-docker compose -f infra/docker/docker-compose.dev.yml up -d   # PostgreSQL, Redis, MinIO, ClamAV
-pnpm dev
+docker compose -f infra/docker/docker-compose.dev.yml up -d   # PostgreSQL, MinIO, ClamAV
+pnpm --filter @humanix/api db:setup                           # migrations + RLS + seed
+pnpm --filter @humanix/api dev      # API
+pnpm --filter @humanix/web dev      # front (http://localhost:5173)
 ```

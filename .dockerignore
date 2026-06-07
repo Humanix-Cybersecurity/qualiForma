@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/.turbo
+**/*.tsbuildinfo
+.git
+**/coverage
+**/playwright-report
+**/test-results
+apps/web/ios
+apps/web/android
+**/*.log
+docs/sbom
