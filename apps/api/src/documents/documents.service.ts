@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import type { DocumentScope, DocumentType } from '@prisma/client';
 import { loadEnv } from '../config/env';
+import { AuditService } from '../audit/audit.service';
 import { TenantPrismaService } from '../prisma/tenant-prisma.service';
 import { requireTenantContext } from '../tenant/tenant-context';
 import { FILE_SCANNER, type FileScanner } from './file-scanner';
@@ -45,6 +46,7 @@ export class DocumentsService {
 
   constructor(
     private readonly tenantPrisma: TenantPrismaService,
+    private readonly audit: AuditService,
     @Inject(OBJECT_STORAGE) private readonly storage: ObjectStorage,
     @Inject(FILE_SCANNER) private readonly scanner: FileScanner,
   ) {}
@@ -113,8 +115,8 @@ export class DocumentsService {
     await this.storage.copy(quarantineKey, objectKey);
     await this.storage.delete(quarantineKey).catch(() => undefined);
 
-    return this.tenantPrisma.withTenant((tx) =>
-      tx.document.create({
+    return this.tenantPrisma.withTenant(async (tx) => {
+      const doc = await tx.document.create({
         data: {
           id,
           tenantId,
@@ -132,8 +134,16 @@ export class DocumentsService {
           chiffre: loadEnv().S3_SSE,
           uploadedById: input.uploadedById ?? null,
         },
-      }),
-    );
+      });
+      await this.audit.record(tx, {
+        action: 'document.upload',
+        entity: 'document',
+        entityId: doc.id,
+        ...(input.uploadedById ? { actorUserId: input.uploadedById } : {}),
+        payload: { checksum, mime, scope: input.scope },
+      });
+      return doc;
+    });
   }
 }
 

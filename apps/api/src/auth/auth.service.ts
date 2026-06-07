@@ -10,6 +10,7 @@ import * as argon2 from 'argon2';
 import { authenticator } from 'otplib';
 import type { AccessClaims, LoginInput, RefreshInput, TokenPair } from '@humanix/domain';
 import { loadEnv } from '../config/env';
+import { AuditService } from '../audit/audit.service';
 import { CryptoService } from '../common/crypto.service';
 import { TenantPrismaService, type TenantClient } from '../prisma/tenant-prisma.service';
 
@@ -28,6 +29,7 @@ export class AuthService {
     private readonly tenantPrisma: TenantPrismaService,
     private readonly jwt: JwtService,
     private readonly crypto: CryptoService,
+    private readonly audit: AuditService,
   ) {}
 
   async login(
@@ -71,6 +73,13 @@ export class AuthService {
       await tx.user.update({
         where: { id: user.id },
         data: { failedLoginCount: 0, lockedUntil: null },
+      });
+
+      await this.audit.record(tx, {
+        action: 'auth.login',
+        actorUserId: user.id,
+        ...(meta.ip ? { ip: meta.ip } : {}),
+        ...(meta.userAgent ? { userAgent: meta.userAgent } : {}),
       });
 
       return this.issueTokens(

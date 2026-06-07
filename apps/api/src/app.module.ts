@@ -2,6 +2,7 @@
 import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 import { PrismaModule } from './prisma/prisma.module';
+import { AuditModule } from './audit/audit.module';
 import { TenantModule } from './tenant/tenant.module';
 import { TenantMiddleware } from './tenant/tenant.middleware';
 import { AuthModule } from './auth/auth.module';
@@ -10,6 +11,7 @@ import { EmargementModule } from './emargement/emargement.module';
 import { QuestionnairesModule } from './questionnaires/questionnaires.module';
 import { ExportsModule } from './exports/exports.module';
 import { SuperAdminModule } from './superadmin/superadmin.module';
+import { RgpdModule } from './rgpd/rgpd.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -21,6 +23,7 @@ import { HealthController } from './health/health.controller';
       },
     }),
     PrismaModule,
+    AuditModule,
     TenantModule,
     AuthModule,
     DocumentsModule,
@@ -28,6 +31,7 @@ import { HealthController } from './health/health.controller';
     QuestionnairesModule,
     ExportsModule,
     SuperAdminModule,
+    RgpdModule,
   ],
   controllers: [HealthController],
 })

@@ -15,20 +15,20 @@
 | 8 | Exports | feuille émargement PDF (QR), certificat, décompte PDF/CSV/XLSX — validé e2e | ✅ fait |
 | 9 | Front (apps/web) + Accessibilité + i18n + gate CI a11y | PWA React/Vite + Capacitor, design system accessible, i18n FR/EN, login↔API validé navigateur ; gate a11y axe-core (4/4) + Lighthouse/pa11y en CI + déclaration d'accessibilité | ✅ fait |
 | 10 | Super-admin SaaS + plans/quotas | onboarding/supervision/plans/quotas via client privilégié séparé — validé e2e | ✅ fait |
-| 11 | Durcissement sécurité + RGPD + doc finale | SAST/SBOM/headers, registre RGPD, mapping Qualiopi | ⬜ |
+| 11 | Durcissement sécurité + RGPD + doc finale | audit général hash-chaîné, CSP verrouillée, RGPD (export/anonymisation+legal hold), SBOM/gitleaks/SPDX en CI, docs conformité | ✅ fait |
 
-## Definition of Done (rappel des critères d'acceptation)
+## Definition of Done (critères d'acceptation)
 
-- [ ] Aucune requête sans contexte tenant ; test d'isolation inter-tenant vert.
-- [ ] Émargement indexé sur la demi-journée, co-signature formateur imposée.
-- [ ] Faisceau de preuves complet, vérifiable (lien/QR), audit hash-chaîné.
-- [ ] Feuille d'émargement PDF avec toutes les mentions obligatoires + lien de vérification.
-- [ ] Interface `SignatureProvider` prête pour QTSP/SEA.
-- [ ] Décompte facturation exportable (PDF/CSV/XLSX).
-- [ ] CI a11y verte (axe 0 critique, Lighthouse a11y ≥ 95) + déclaration publiée.
-- [ ] Uploads scannés (ClamAV) + chiffrés ; dézippage sécurisé.
-- [ ] MFA + RBAC + audit + en-têtes de sécurité actifs.
-- [ ] AGPLv3 en place (LICENSE, SPDX, NOTICE).
-- [ ] App installable (PWA) + buildable natif (Capacitor iOS/Android).
-- [ ] Déploiement self-host (docker-compose) ET SaaS documentés.
-- [ ] Mapping Qualiopi → fonctionnalités documenté.
+- [x] Aucune requête sans contexte tenant ; test d'isolation inter-tenant vert (8/8).
+- [x] Émargement indexé sur la demi-journée, co-signature formateur imposée.
+- [x] Faisceau de preuves complet, vérifiable (lien/QR), audit hash-chaîné.
+- [x] Feuille d'émargement PDF avec toutes les mentions obligatoires + lien de vérification.
+- [x] Interface `SignatureProvider` prête pour QTSP/SEA.
+- [x] Décompte facturation exportable (PDF/CSV/XLSX).
+- [x] CI a11y verte (axe 0 critique/sérieux, Lighthouse a11y ≥ 95) + déclaration publiée.
+- [x] Uploads scannés (ClamAV) + chiffrés ; dézippage sécurisé (EICAR testé).
+- [x] MFA + RBAC + audit + en-têtes de sécurité (CSP verrouillée) actifs.
+- [x] AGPLv3 en place (LICENSE, SPDX vérifié en CI, NOTICE).
+- [x] App installable (PWA) + base Capacitor iOS/Android (build prod OK).
+- [ ] Déploiement self-host (docker-compose) ET SaaS documentés — *compose dev OK ; doc prod à compléter*.
+- [x] Mapping Qualiopi → fonctionnalités documenté ([docs/conformite/qualiopi-mapping.md](docs/conformite/qualiopi-mapping.md)).

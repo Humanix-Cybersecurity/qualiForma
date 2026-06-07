@@ -68,13 +68,29 @@ jobs:
           npx --yes pa11y-ci --config apps/web/.pa11yci
 
   security:
-    # SAST, audit deps (OSV/npm), secret scanning, SBOM, scan image — gate sécurité (§12)
+    # Audit deps, secret scanning, SBOM, en-têtes SPDX — gate sécurité (§12)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm audit --audit-level=high || true   # TODO étape 11 : durcir en bloquant
+      - run: pnpm lint:spdx
+      - run: pnpm audit --audit-level=high
+      # Secret scanning (commits + arbre de travail).
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # SBOM CycloneDX (artefact de conformité).
+      - name: SBOM (syft)
+        uses: anchore/sbom-action@v0
+        with:
+          format: cyclonedx-json
+          output-file: sbom.cyclonedx.json
+      - uses: actions/upload-artifact@v4
+        with: { name: sbom, path: sbom.cyclonedx.json }
+      # TODO : SAST (semgrep/CodeQL) + scan d'image conteneur (trivy) au packaging.
       # TODO étape 11 : SAST (semgrep/codeql), gitleaks, syft SBOM, trivy image, vérif en-têtes SPDX

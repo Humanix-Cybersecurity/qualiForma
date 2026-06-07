@@ -12,7 +12,22 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
 
   app.useLogger(app.get(Logger));
-  app.use(helmet()); // CSP/HSTS/headers de sécurité (durcis à l'étape 11)
+  // En-têtes de sécurité (§12). L'API ne renvoie que du JSON → CSP verrouillée.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: false,
+        directives: {
+          defaultSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+          baseUri: ["'none'"],
+          formAction: ["'none'"],
+        },
+      },
+      crossOriginResourcePolicy: { policy: 'same-site' },
+      referrerPolicy: { policy: 'no-referrer' },
+    }),
+  );
   app.set('trust proxy', 1); // req.ip fiable derrière un reverse-proxy
   app.enableCors({
     origin: env.CORS_ORIGINS,

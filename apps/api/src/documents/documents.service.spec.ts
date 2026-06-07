@@ -44,7 +44,7 @@ describe('DocumentsService (pipeline fail-closed)', () => {
     const storage = makeStorage();
     const scanner = makeScanner({ clean: true });
     const { svc, create } = makeTenantPrisma();
-    const service = new DocumentsService(svc, storage, scanner);
+    const service = new DocumentsService(svc, { record: jest.fn() } as never, storage, scanner);
 
     const doc = await runWithTenant(ctx, () =>
       service.upload({ buffer: pdf, originalName: 'cours.pdf', type: 'pdf', scope: 'tenant' }),
@@ -61,7 +61,7 @@ describe('DocumentsService (pipeline fail-closed)', () => {
     const storage = makeStorage();
     const scanner = makeScanner({ clean: false, signature: 'Eicar-Test-Signature' });
     const { svc, create } = makeTenantPrisma();
-    const service = new DocumentsService(svc, storage, scanner);
+    const service = new DocumentsService(svc, { record: jest.fn() } as never, storage, scanner);
 
     await expect(
       runWithTenant(ctx, () =>
@@ -79,7 +79,7 @@ describe('DocumentsService (pipeline fail-closed)', () => {
     const storage = makeStorage();
     const scanner = makeScanner({ clean: true });
     const { svc } = makeTenantPrisma();
-    const service = new DocumentsService(svc, storage, scanner);
+    const service = new DocumentsService(svc, { record: jest.fn() } as never, storage, scanner);
 
     const garbage = Buffer.from([0x00, 0x01, 0x02, 0xff, 0x00]);
     await expect(
@@ -96,7 +96,7 @@ describe('DocumentsService (pipeline fail-closed)', () => {
     const storage = makeStorage();
     const scanner = makeScanner({ clean: true });
     const { svc } = makeTenantPrisma();
-    const service = new DocumentsService(svc, storage, scanner);
+    const service = new DocumentsService(svc, { record: jest.fn() } as never, storage, scanner);
 
     const big = Buffer.alloc(4096, 0x25); // > UPLOAD_MAX_BYTES (2048)
     await expect(
