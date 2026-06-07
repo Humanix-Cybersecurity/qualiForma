@@ -8,5 +8,6 @@ import { FacturationService } from './facturation.service';
   imports: [AuthModule],
   controllers: [FacturationController],
   providers: [FacturationService],
+  exports: [FacturationService],
 })
 export class FacturationModule {}

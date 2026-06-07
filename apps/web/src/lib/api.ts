@@ -106,6 +106,17 @@ export interface PlanRow {
   maxUsers: number | null;
 }
 
+export interface DevisRow {
+  id: string;
+  numero: string;
+  statut: string;
+  financeur: string | null;
+  dateDevis: string;
+  validiteJours: number;
+  totalTtcCents: number;
+  factureId: string | null;
+}
+
 export interface FactureRow {
   id: string;
   numero: string;
@@ -567,6 +578,30 @@ export const api = {
   },
   bpf(auth: AuthState, annee: number) {
     return request<Bpf>(`/factures/bpf?annee=${annee}`, { auth });
+  },
+
+  // --- Devis ---
+  devis(auth: AuthState) {
+    return request<DevisRow[]>('/devis', { auth });
+  },
+  createDevis(
+    auth: AuthState,
+    body: {
+      sessionId?: string;
+      entrepriseId?: string;
+      financeur?: string;
+      validiteJours?: number;
+      notes?: string;
+      lignes: { designation: string; quantite?: number; prixUnitaireCents: number; tvaTauxBp?: number }[];
+    },
+  ) {
+    return request<{ id: string; numero: string; statut: string; totalTtcCents: number }>('/devis', { method: 'POST', auth, body });
+  },
+  setDevisStatut(auth: AuthState, id: string, statut: 'brouillon' | 'envoye' | 'accepte' | 'refuse' | 'expire') {
+    return request<{ id: string; statut: string }>(`/devis/${id}/statut`, { method: 'PATCH', auth, body: { statut } });
+  },
+  convertirDevis(auth: AuthState, id: string) {
+    return request<{ devisId: string; factureId: string; numero: string }>(`/devis/${id}/convertir`, { method: 'POST', auth });
   },
 
   // --- Conventions ---

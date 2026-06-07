@@ -926,3 +926,58 @@ model Paiement {
   @@index([factureId])
   @@map("paiement")
 }
+
+// ============================================================================
+// Gestion commerciale (N4) — devis
+// ============================================================================
+
+enum DevisStatut {
+  brouillon
+  envoye
+  accepte
+  refuse
+  expire
+}
+
+/// Devis (proposition commerciale) — convertible en facture une fois accepté.
+model Devis {
+  id            String      @id @default(uuid()) @db.Uuid
+  tenantId      String      @map("tenant_id") @db.Uuid
+  numero        String
+  sessionId     String?     @map("session_id") @db.Uuid
+  entrepriseId  String?     @map("entreprise_id") @db.Uuid
+  apprenantId   String?     @map("apprenant_id") @db.Uuid
+  financeur     Financeur?
+  statut        DevisStatut @default(brouillon)
+  dateDevis     DateTime    @default(now()) @map("date_devis")
+  validiteJours Int         @default(30) @map("validite_jours")
+  totalHtCents  Int         @default(0) @map("total_ht_cents")
+  totalTvaCents Int         @default(0) @map("total_tva_cents")
+  totalTtcCents Int         @default(0) @map("total_ttc_cents")
+  notes         String?
+  // Renseigné quand le devis a été converti en facture.
+  factureId     String?     @map("facture_id") @db.Uuid
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  lignes DevisLigne[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId])
+  @@map("devis")
+}
+
+model DevisLigne {
+  id                String  @id @default(uuid()) @db.Uuid
+  tenantId          String  @map("tenant_id") @db.Uuid
+  devisId           String  @map("devis_id") @db.Uuid
+  designation       String
+  quantite          Decimal @default(1) @db.Decimal(10, 2)
+  prixUnitaireCents Int     @map("prix_unitaire_cents")
+  tvaTauxBp         Int     @default(0) @map("tva_taux_bp")
+
+  devis Devis @relation(fields: [devisId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([devisId])
+  @@map("devis_ligne")
+}

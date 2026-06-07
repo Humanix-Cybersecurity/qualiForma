@@ -22,6 +22,7 @@ import { UsersModule } from './users/users.module';
 import { ConventionsModule } from './conventions/conventions.module';
 import { StatsModule } from './stats/stats.module';
 import { FacturationModule } from './facturation/facturation.module';
+import { DevisModule } from './devis/devis.module';
 import { JobsModule } from './jobs/jobs.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { QuotasModule } from './quotas/quotas.module';
@@ -55,6 +56,7 @@ import { HealthController } from './health/health.controller';
     ConventionsModule,
     StatsModule,
     FacturationModule,
+    DevisModule,
     JobsModule,
     MetricsModule,
     QuotasModule,

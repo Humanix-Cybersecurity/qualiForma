@@ -5,6 +5,7 @@ export { renderFeuilleEmargement } from './emargement';
 export { renderCertificat } from './certificat';
 export { renderDecompte } from './decompte';
 export { renderFacture, type FactureData, type FactureLigneData } from './facture';
+export { renderDevis, type DevisData } from './devis';
 export {
   renderConvention,
   renderConvocation,
