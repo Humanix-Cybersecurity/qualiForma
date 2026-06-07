@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
+import { LoggerModule } from 'nestjs-pino';
+import { PrismaModule } from './prisma/prisma.module';
+import { TenantModule } from './tenant/tenant.module';
+import { TenantMiddleware } from './tenant/tenant.middleware';
+import { AuthModule } from './auth/auth.module';
+import { HealthController } from './health/health.controller';
+
+@Module({
+  imports: [
+    LoggerModule.forRoot({
+      pinoHttp: {
+        // Ne jamais logger en clair les en-têtes sensibles.
+        redact: ['req.headers.authorization', 'req.headers.cookie'],
+      },
+    }),
+    PrismaModule,
+    TenantModule,
+    AuthModule,
+  ],
+  controllers: [HealthController],
+})
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    // Le contexte tenant est requis partout SAUF la sonde de santé.
+    consumer
+      .apply(TenantMiddleware)
+      .exclude('health')
+      .forRoutes('*');
+  }
+}

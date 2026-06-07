@@ -1,0 +1,114 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Étape 2 : modèle minimal pour la couche tenant + auth. Le modèle métier complet
+// (Formation, Session, Creneau, Emargement, PreuveSignature, ...) arrive à l'étape 3.
+//
+// IMPORTANT : Prisma ne gère pas les policies Row-Level Security. Après `prisma migrate`,
+// appliquer `prisma/sql/rls-policies.sql` (script `pnpm db:rls`). Voir ADR 0002.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Runtime : rôle applicatif `app` (soumis à la RLS).
+  url      = env("DATABASE_URL")
+  // Migrations / DDL : rôle propriétaire (superuser). Prisma utilise directUrl pour migrate.
+  directUrl = env("DATABASE_MIGRATION_URL")
+}
+
+enum Role {
+  super_admin
+  admin_of
+  formateur
+  apprenant
+  referent_handicap
+}
+
+enum TenantStatus {
+  active
+  suspended
+}
+
+/// Organisme de formation (tenant). Table racine du cloisonnement.
+model Tenant {
+  id        String       @id @default(uuid()) @db.Uuid
+  slug      String       @unique
+  name      String
+  status    TenantStatus @default(active)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  users         User[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+
+  @@map("tenant")
+}
+
+model User {
+  id           String  @id @default(uuid()) @db.Uuid
+  tenantId     String  @map("tenant_id") @db.Uuid
+  email        String
+  passwordHash String  @map("password_hash")
+  role         Role
+  isActive     Boolean @default(true) @map("is_active")
+
+  // MFA TOTP. Le secret est chiffré au repos par l'application avant stockage.
+  mfaEnabled       Boolean @default(false) @map("mfa_enabled")
+  mfaSecretEnc     String? @map("mfa_secret_enc")
+
+  // Protection brute-force (cf. §12).
+  failedLoginCount Int       @default(0) @map("failed_login_count")
+  lockedUntil      DateTime? @map("locked_until")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("app_user")
+}
+
+/// Jeton de rafraîchissement (hashé, jamais stocké en clair). Rotation à chaque refresh.
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  userAgent String?   @map("user_agent")
+  ip        String?
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId])
+  @@map("refresh_token")
+}
+
+/// Journal d'audit append-only hash-chaîné (squelette ; chaînage complet à l'étape 5, ADR 0003).
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  action      String
+  entity      String?
+  entityId    String?  @map("entity_id")
+  ip          String?
+  userAgent   String?  @map("user_agent")
+  payloadHash String   @map("payload_hash")
+  prevHash    String?  @map("prev_hash")
+  hash        String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@map("audit_log")
+}
