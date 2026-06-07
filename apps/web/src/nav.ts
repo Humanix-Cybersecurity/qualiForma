@@ -9,6 +9,7 @@ import {
   FolderClosed,
   LayoutDashboard,
   MessageSquareWarning,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 import type { Claims } from './lib/api';
@@ -43,6 +44,7 @@ export function navForRole(role: Claims['role']): NavItem[] {
         DASHBOARD,
         { to: '/app/formations', labelKey: 'formations', icon: BookOpen },
         { to: '/app/sessions', labelKey: 'sessions', icon: CalendarCheck },
+        { to: '/app/utilisateurs', labelKey: 'utilisateurs', icon: Users },
         { to: '/app/questionnaires', labelKey: 'questionnaires', icon: ClipboardList },
         { to: '/app/documents', labelKey: 'documents', icon: FolderClosed },
         { to: '/app/reclamations', labelKey: 'reclamations', icon: MessageSquareWarning },

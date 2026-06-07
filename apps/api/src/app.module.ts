@@ -18,6 +18,7 @@ import { RgpdModule } from './rgpd/rgpd.module';
 import { ProfileModule } from './profile/profile.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { ReclamationsModule } from './reclamations/reclamations.module';
+import { UsersModule } from './users/users.module';
 import { JobsModule } from './jobs/jobs.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { QuotasModule } from './quotas/quotas.module';
@@ -47,6 +48,7 @@ import { HealthController } from './health/health.controller';
     ProfileModule,
     CatalogModule,
     ReclamationsModule,
+    UsersModule,
     JobsModule,
     MetricsModule,
     QuotasModule,

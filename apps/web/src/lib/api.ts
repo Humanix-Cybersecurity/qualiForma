@@ -106,6 +106,15 @@ export interface PlanRow {
   maxUsers: number | null;
 }
 
+export interface UserRow {
+  id: string;
+  email: string;
+  prenom: string | null;
+  nom: string | null;
+  role: 'apprenant' | 'formateur' | 'referent_handicap';
+  isActive?: boolean;
+}
+
 export interface SessionCompletude {
   sessionId: string;
   intitule: string;
@@ -303,6 +312,17 @@ export const api = {
   },
   enroll(auth: AuthState, sessionId: string, apprenantEmail: string) {
     return request<{ id: string }>(`/sessions/${sessionId}/inscriptions`, { method: 'POST', auth, body: { apprenantEmail } });
+  },
+
+  // --- Comptes utilisateurs (admin OF) ---
+  createUser(
+    auth: AuthState,
+    body: { email: string; prenom?: string; nom?: string; role: 'apprenant' | 'formateur' | 'referent_handicap'; password?: string },
+  ) {
+    return request<UserRow & { temporaryPassword?: string }>('/users', { method: 'POST', auth, body });
+  },
+  listUsers(auth: AuthState, role?: 'apprenant' | 'formateur' | 'referent_handicap') {
+    return request<UserRow[]>(`/users${role ? `?role=${role}` : ''}`, { auth });
   },
   completude(auth: AuthState, sessionId: string) {
     return request<SessionCompletude>(`/sessions/${sessionId}/completude`, { auth });

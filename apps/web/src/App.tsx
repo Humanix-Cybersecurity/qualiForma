@@ -15,6 +15,7 @@ import { QuestionnairesPage } from './pages/QuestionnairesPage';
 import { AttestationsPage } from './pages/AttestationsPage';
 import { FormationsPage } from './pages/FormationsPage';
 import { SessionsPage } from './pages/SessionsPage';
+import { UtilisateursPage } from './pages/UtilisateursPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { AdminTenantsPage } from './pages/AdminTenantsPage';
 import { AdminPlansPage } from './pages/AdminPlansPage';
@@ -65,6 +66,7 @@ export function App() {
           <Route path="attestations" element={<RoleRoute roles={['apprenant']}><AttestationsPage /></RoleRoute>} />
           <Route path="formations" element={<RoleRoute roles={['admin_of', 'formateur']}><FormationsPage /></RoleRoute>} />
           <Route path="sessions" element={<RoleRoute roles={['admin_of', 'formateur']}><SessionsPage /></RoleRoute>} />
+          <Route path="utilisateurs" element={<RoleRoute roles={['admin_of']}><UtilisateursPage /></RoleRoute>} />
           <Route path="documents" element={<RoleRoute roles={['admin_of']}><DocumentsPage /></RoleRoute>} />
           <Route path="reclamations" element={<RoleRoute roles={['admin_of']}><ReclamationsPage /></RoleRoute>} />
           <Route path="tenants" element={<RoleRoute roles={['super_admin']}><AdminTenantsPage /></RoleRoute>} />
